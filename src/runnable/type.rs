@@ -27,7 +27,7 @@ impl Runnable for Type {
                 file_path.exists() && file_path.metadata().unwrap().permissions().mode() & 0o111 != 0
             });
             if let Some(exec_path) = exec_path {
-                println!("{} is {}", command, exec_path);
+                println!("{} is {}/{}", command, exec_path, command);
                 return 0;
             }
         }
