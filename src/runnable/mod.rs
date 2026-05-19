@@ -42,7 +42,8 @@ pub fn dispatch(
 
     // External
     if let Some(path) = find_executable(command) {
-        return Command::new(path)
+        let command_name = path.split('/').last().unwrap_or(command);
+        return Command::new(command_name)
             .args(args)
             .status()
             .map(|s| s.code().unwrap_or(1))
