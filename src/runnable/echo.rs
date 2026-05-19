@@ -1,11 +1,13 @@
 pub struct Echo;
 
-impl super::Runnable for Echo {
+use crate::runnable::{CommandContext, Runnable};
+
+impl Runnable for Echo {
     fn name(&self) -> &'static str {
         "echo"
     }
 
-    fn run(&self, args: &[&str]) -> i32 {
+    fn run(&self, args: &[&str], _ctx: CommandContext) -> i32 {
         println!("{}", args.join(" "));
         0
     }

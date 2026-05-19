@@ -5,6 +5,8 @@ mod runnable;
 
 fn main() {
     // TODO: Uncomment the code below to pass the first stage
+
+    let commands = runnable::get_commands();
     
     loop {
         print!("$ ");
@@ -17,6 +19,6 @@ fn main() {
         let command = parts[0];
         let args = &parts[1..];
 
-        runnable::dispatch(command, args);
+        runnable::dispatch(&commands, command, args);
     }
 }

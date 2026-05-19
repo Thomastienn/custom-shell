@@ -1,11 +1,13 @@
 pub struct Exit;
 
-impl super::Runnable for Exit {
+use crate::runnable::{CommandContext, Runnable};
+
+impl Runnable for Exit {
     fn name(&self) -> &'static str {
         "exit"
     }
 
-    fn run(&self, _args: &[&str]) -> i32 {
+    fn run(&self, _args: &[&str], _ctx: CommandContext) -> i32 {
         std::process::exit(0);
     }
 }
