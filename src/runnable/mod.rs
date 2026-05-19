@@ -2,7 +2,9 @@ pub mod echo;
 pub mod exit;
 pub mod r#type;
 
+use crate::utils::path::{find_executable};
 use std::collections::HashMap;
+use std::process::Command;
 
 type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 
@@ -33,8 +35,18 @@ pub fn dispatch(
 ) -> i32 {
     let ctx = CommandContext { commands };
     
+    // Builtin
     if let Some(cmd) = commands.get(command) {
         return cmd.run(args, ctx);
+    }
+
+    // External
+    if let Some(path) = find_executable(command) {
+        return Command::new(path)
+            .args(args)
+            .status()
+            .map(|s| s.code().unwrap_or(1))
+            .unwrap_or(1);
     }
 
     println!("{}: command not found", command);
