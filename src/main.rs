@@ -1,6 +1,8 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
+mod runnable;
+
 fn main() {
     // TODO: Uncomment the code below to pass the first stage
     
@@ -11,10 +13,10 @@ fn main() {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
 
-        if input.trim() == "exit" {
-            break;
-        }
+        let parts = input.trim().split_whitespace().collect::<Vec<&str>>();
+        let command = parts[0];
+        let args = &parts[1..];
 
-        print!("{}: command not found\n", input.trim());
+        runnable::dispatch(command, args);
     }
 }
