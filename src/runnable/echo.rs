@@ -1,6 +1,6 @@
-pub struct Echo;
-
 use crate::runnable::{CommandContext, Runnable};
+
+pub struct Echo;
 
 impl Runnable for Echo {
     fn name(&self) -> &'static str {

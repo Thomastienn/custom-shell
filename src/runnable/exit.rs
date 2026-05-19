@@ -1,6 +1,6 @@
-pub struct Exit;
-
 use crate::runnable::{CommandContext, Runnable};
+
+pub struct Exit;
 
 impl Runnable for Exit {
     fn name(&self) -> &'static str {

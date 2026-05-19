@@ -1,6 +1,9 @@
-pub struct Type;
+use crate::runnable::{CommandContext, Runnable };
+use std::env;
+use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
 
-use crate::runnable::{CommandContext, Runnable};
+pub struct Type;
 
 impl Runnable for Type {
     fn name(&self) -> &'static str {
@@ -12,12 +15,23 @@ impl Runnable for Type {
         if let Some(cmd) = ctx.commands.get(command) {
             if cmd.is_builtin() {
                 println!("{} is a shell builtin", command);
-            } else {
-                panic!("{} is not a shell builtin", command);
+                return 0;
             }
-        } else {
-            println!("{}: not found", command);
         }
+        let path_res = env::var("PATH");
+        if let Ok(path_str) = path_res {
+            let exec_path = path_str.split(':').find(|path| {
+                let full_path = format!("{}/{}", path, command);
+                let file_path = Path::new(&full_path);
+
+                file_path.exists() && file_path.metadata().unwrap().permissions().mode() & 0o111 != 0
+            });
+            if let Some(exec_path) = exec_path {
+                println!("{} is {}", command, exec_path);
+                return 0;
+            }
+        }
+        println!("{}: not found", command);
         0
     }
 }
