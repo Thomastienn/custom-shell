@@ -7,7 +7,7 @@ pub mod cd;
 use crate::utils::path::{find_executable};
 use crate::utils::output::Output;
 use std::collections::HashMap;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 
@@ -40,17 +40,24 @@ pub fn dispatch(
     args: &[&str]
 ) -> i32 {
     let commands = ctx.commands;
+    let output = &ctx.stdout;
 
     // Builtin
     if let Some(cmd) = commands.get(command) {
         return cmd.run(args, ctx);
     }
 
+    let stdout = match output {
+        Output::Stdout      => Stdio::inherit(),
+        Output::File(path)  => Stdio::from(std::fs::File::create(path).unwrap()),
+    };
+
     // External
     if let Some(path) = find_executable(command) {
         let command_name = path.split('/').last().unwrap_or(command);
         return Command::new(command_name)
             .args(args)
+            .stdout(stdout)
             .status()
             .map(|s| s.code().unwrap_or(1))
             .unwrap_or(1);
