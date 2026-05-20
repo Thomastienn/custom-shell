@@ -19,13 +19,13 @@ fn main() {
         let mut quote = String::new();
         let mut escape = false;
         for part in input.trim().chars() {
-            if part == '\\' {
-                escape = true;
-                continue;
-            }
             if escape {
                 buffer.push(part);
                 escape = false;
+                continue;
+            }
+            if part == '\\' {
+                escape = true;
                 continue;
             }
             if quote.is_empty() {
