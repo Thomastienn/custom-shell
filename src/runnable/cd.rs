@@ -1,5 +1,5 @@
 use crate::runnable::{CommandContext, Runnable};
-use std::{env, path::Path};
+use std::{env, path::PathBuf};
 
 pub struct Cd;
 
@@ -9,7 +9,14 @@ impl Runnable for Cd {
     }
 
     fn run(&self, args: &[&str], _ctx: CommandContext) -> i32 {
-        let path = Path::new(args[0]);
+        let mut path = PathBuf::from(args[0]);
+        if path.starts_with("~") {
+            if let Ok(home) = env::var("HOME") {
+                path = PathBuf::from(home).join(path.strip_prefix("~").unwrap());
+            } else {
+                return 1;
+            }
+        }
         if path.exists() && path.is_dir() {
             env::set_current_dir(path).unwrap();
             return 0;
