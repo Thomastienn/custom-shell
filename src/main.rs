@@ -7,11 +7,11 @@ mod utils;
 
 fn main() {
     let commands = runnable::get_commands();
-    let mut ctx = runnable::CommandContext { 
+    let mut ctx = runnable::CommandContext {
         commands: &commands,
         stdout: Output::Stdout,
     };
-    
+
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -55,22 +55,25 @@ fn main() {
             parts.push(buffer);
         }
         let command = &parts[0];
-        let redirect = parts.iter().position(|s| s.contains(">"));
+        let redirect_pos = parts.iter().position(|s| s.contains(">"));
 
         let mut args_end = parts.len();
-        if let Some(pos) = redirect {
+        if let Some(pos) = redirect_pos {
             args_end = pos;
             if pos + 1 < parts.len() {
-                ctx.stdout = Output::File(parts[pos + 1].clone());
+                let redirect_part = &parts[pos];
+                if redirect_part.starts_with("1>") || redirect_part.starts_with(">") {
+                    ctx.stdout = Output::File(parts[pos + 1].clone());
+                } else {
+                    eprintln!("Syntax error: unexpected redirection operator '{}'", redirect_part);
+                    continue;
+                }
             } else {
-                println!("Syntax error: expected file after '>'");
+                eprintln!("Syntax error: expected file after '>'");
                 continue;
             }
         }
-        let args: Vec<&str> = parts[1..args_end]
-            .iter()
-            .map(|s| s.as_str())
-            .collect();
+        let args: Vec<&str> = parts[1..args_end].iter().map(|s| s.as_str()).collect();
 
         runnable::dispatch(&ctx, command, args.as_slice());
     }

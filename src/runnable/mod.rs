@@ -56,6 +56,6 @@ pub fn dispatch(
             .unwrap_or(1);
     }
 
-    println!("{}: command not found", command);
+    eprintln!("{}: command not found", command);
     127
 }
