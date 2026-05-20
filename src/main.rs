@@ -1,11 +1,16 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use utils::output::Output;
 
 mod runnable;
 mod utils;
 
 fn main() {
     let commands = runnable::get_commands();
+    let mut ctx = runnable::CommandContext { 
+        commands: &commands,
+        stdout: Output::Stdout,
+    };
     
     loop {
         print!("$ ");
@@ -50,10 +55,23 @@ fn main() {
             parts.push(buffer);
         }
         let command = &parts[0];
-        let args: Vec<&str> = parts[1..]
+        let redirect = parts.iter().position(|s| s.contains(">"));
+
+        let mut args_end = parts.len();
+        if let Some(pos) = redirect {
+            args_end = pos;
+            if pos + 1 < parts.len() {
+                ctx.stdout = Output::File(parts[pos + 1].clone());
+            } else {
+                println!("Syntax error: expected file after '>'");
+                continue;
+            }
+        }
+        let args: Vec<&str> = parts[1..args_end]
             .iter()
             .map(|s| s.as_str())
             .collect();
-        runnable::dispatch(&commands, command, args.as_slice());
+
+        runnable::dispatch(&ctx, command, args.as_slice());
     }
 }

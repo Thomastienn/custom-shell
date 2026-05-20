@@ -8,7 +8,7 @@ impl Runnable for Cd {
         "cd"
     }
 
-    fn run(&self, args: &[&str], _ctx: CommandContext) -> i32 {
+    fn run(&self, args: &[&str], _ctx: &CommandContext) -> i32 {
         let mut path = PathBuf::from(args[0]);
         if path.starts_with("~") {
             if let Ok(home) = env::var("HOME") {
@@ -21,7 +21,7 @@ impl Runnable for Cd {
             env::set_current_dir(path).unwrap();
             return 0;
         }
-        println!("cd: {}: No such file or directory", args[0]);
+        eprintln!("cd: {}: No such file or directory", args[0]);
         1
     }
 }

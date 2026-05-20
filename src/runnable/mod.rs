@@ -5,6 +5,7 @@ pub mod pwd;
 pub mod cd;
 
 use crate::utils::path::{find_executable};
+use crate::utils::output::Output;
 use std::collections::HashMap;
 use std::process::Command;
 
@@ -12,11 +13,12 @@ type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
+    pub stdout: Output,
 }
 
 pub trait Runnable {
     fn name(&self) -> &'static str;
-    fn run(&self, args: &[&str], ctx: CommandContext) -> i32;
+    fn run(&self, args: &[&str], ctx: &CommandContext) -> i32;
     fn is_builtin(&self) -> bool {
         true
     }
@@ -33,12 +35,12 @@ pub fn get_commands() -> CommandMap {
 }
 
 pub fn dispatch(
-    commands: &CommandMap,
+    ctx: &CommandContext,
     command: &str,
     args: &[&str]
 ) -> i32 {
-    let ctx = CommandContext { commands };
-    
+    let commands = ctx.commands;
+
     // Builtin
     if let Some(cmd) = commands.get(command) {
         return cmd.run(args, ctx);
