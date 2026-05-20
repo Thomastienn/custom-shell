@@ -5,8 +5,6 @@ mod runnable;
 mod utils;
 
 fn main() {
-    // TODO: Uncomment the code below to pass the first stage
-
     let commands = runnable::get_commands();
     
     loop {
@@ -19,7 +17,17 @@ fn main() {
         let mut parts: Vec<String> = Vec::new();
         let mut buffer = String::new();
         let mut quote = String::new();
+        let mut escape = false;
         for part in input.trim().chars() {
+            if part == '\\' {
+                escape = true;
+                continue;
+            }
+            if escape {
+                buffer.push(part);
+                escape = false;
+                continue;
+            }
             if quote.is_empty() {
                 if part == '\'' || part == '"' {
                     quote.push(part);
