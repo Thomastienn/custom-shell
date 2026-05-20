@@ -76,5 +76,7 @@ fn main() {
         let args: Vec<&str> = parts[1..args_end].iter().map(|s| s.as_str()).collect();
 
         runnable::dispatch(&ctx, command, args.as_slice());
+
+        ctx.stdout = Output::Stdout;
     }
 }

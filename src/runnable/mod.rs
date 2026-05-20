@@ -8,6 +8,7 @@ use crate::utils::path::{find_executable};
 use crate::utils::output::Output;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
+use std::fs::File;
 
 type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 
@@ -49,7 +50,7 @@ pub fn dispatch(
 
     let stdout = match output {
         Output::Stdout      => Stdio::inherit(),
-        Output::File(path)  => Stdio::from(std::fs::File::create(path).unwrap()),
+        Output::File(path)  => Stdio::from(File::create(path).unwrap()),
     };
 
     // External
