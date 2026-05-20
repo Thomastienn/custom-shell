@@ -16,10 +16,29 @@ fn main() {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
 
-        let parts = input.trim().split_whitespace().collect::<Vec<&str>>();
-        let command = parts[0];
-        let args = &parts[1..];
+        let mut parts: Vec<String> = Vec::new();
+        let mut buffer = String::new();
+        let mut in_quotes = false;
+        for part in input.trim().chars() {
+            if part == '\'' {
+                in_quotes = !in_quotes;
+                continue;
+            }
+            if part.is_whitespace() && !in_quotes {
+                if !buffer.is_empty() {
+                    parts.push(buffer.clone());
+                    buffer.clear();
+                }
+            } else {
+                buffer.push(part);
+            }
+        }
+        let command = &parts[0];
+        let args: Vec<&str> = parts[1..]
+            .iter()
+            .map(|s| s.as_str())
+            .collect();
 
-        runnable::dispatch(&commands, command, args);
+        runnable::dispatch(&commands, command, args.as_slice());
     }
 }
