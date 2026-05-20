@@ -36,15 +36,11 @@ fn main() {
         if !buffer.is_empty() {
             parts.push(buffer);
         }
-        dbg!(&parts);
         let command = &parts[0];
         let args: Vec<&str> = parts[1..]
             .iter()
             .map(|s| s.as_str())
             .collect();
-
-        dbg!(&command);
-        dbg!(&args);
         runnable::dispatch(&commands, command, args.as_slice());
     }
 }
