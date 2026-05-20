@@ -18,13 +18,18 @@ fn main() {
 
         let mut parts: Vec<String> = Vec::new();
         let mut buffer = String::new();
-        let mut in_quotes = false;
+        let mut quote = String::new();
         for part in input.trim().chars() {
-            if part == '\'' || part == '"' {
-                in_quotes = !in_quotes;
+            if quote.is_empty() {
+                if part == '\'' || part == '"' {
+                    quote.push(part);
+                    continue;
+                }
+            } else if part.to_string() == quote {
+                quote.clear();
                 continue;
             }
-            if part.is_whitespace() && !in_quotes {
+            if part.is_whitespace() && quote.is_empty() {
                 if !buffer.is_empty() {
                     parts.push(buffer.clone());
                     buffer.clear();
