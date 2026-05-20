@@ -20,7 +20,7 @@ fn main() {
         let mut buffer = String::new();
         let mut in_quotes = false;
         for part in input.trim().chars() {
-            if part == '\'' {
+            if part == '\'' || part == '"' {
                 in_quotes = !in_quotes;
                 continue;
             }
