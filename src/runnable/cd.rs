@@ -14,6 +14,7 @@ impl Runnable for Cd {
             env::set_current_dir(path).unwrap();
             return 0;
         }
+        println!("cd: {}: No such file or directory", args[0]);
         1
     }
 }
