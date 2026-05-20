@@ -24,7 +24,7 @@ fn main() {
                 escape = false;
                 continue;
             }
-            if part == '\\' && quote.is_empty() {
+            if part == '\\' && quote != "'" {
                 escape = true;
                 continue;
             }
