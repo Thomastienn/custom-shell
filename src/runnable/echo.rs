@@ -8,10 +8,10 @@ impl Runnable for Echo {
         "echo"
     }
 
-    fn run(&self, args: &[&str], _ctx: &CommandContext) -> i32 {
+    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
         let content = args.join(" ");
-        let stdout = &_ctx.stdout;
-        let stderr = &_ctx.stderr;
+        let stdout = &ctx.parsed_command.stdout;
+        let stderr = &ctx.parsed_command.stderr;
         
         match output::write_to_output(stdout, content.as_str()) {
             Ok(_) => return 0,

@@ -7,7 +7,7 @@ impl Runnable for Exit {
         "exit"
     }
 
-    fn run(&self, _args: &[&str], _ctx: &CommandContext) -> i32 {
+    fn run(&self, _args: &Vec<String>, _ctx: CommandContext) -> i32 {
         std::process::exit(0);
     }
 }

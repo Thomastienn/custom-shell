@@ -6,6 +6,7 @@ pub mod cd;
 
 use crate::utils::path::{find_executable};
 use crate::utils::output;
+use crate::parser::ParsedCommand;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use std::fs::File;
@@ -15,13 +16,12 @@ type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 #[derive(Clone)]
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
-    pub stdout: output::Output,
-    pub stderr: output::Output,
+    pub parsed_command: &'a ParsedCommand,
 }
 
 pub trait Runnable {
     fn name(&self) -> &'static str;
-    fn run(&self, args: &[&str], ctx: &CommandContext) -> i32;
+    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32;
     fn is_builtin(&self) -> bool {
         true
     }
@@ -38,15 +38,15 @@ pub fn get_commands() -> CommandMap {
 }
 
 pub fn dispatch(
-    ctx: &CommandContext,
-    command: &str,
-    args: &[&str]
+    ctx: CommandContext,
 ) -> i32 {
     let commands = ctx.commands;
-    let output = &ctx.stdout;
+    let output = &ctx.parsed_command.stdout;
+    let command = &ctx.parsed_command.command;
+    let args = &ctx.parsed_command.args;
 
     // Builtin
-    if let Some(cmd) = commands.get(command) {
+    if let Some(cmd) = commands.get(command.as_str()) {
         return cmd.run(args, ctx);
     }
 
@@ -57,8 +57,8 @@ pub fn dispatch(
     };
 
     // External
-    if let Some(path) = find_executable(command) {
-        let command_name = path.split('/').last().unwrap_or(command);
+    if let Some(path) = find_executable(command.as_str()) {
+        let command_name = path.split('/').last().unwrap_or(command.as_str());
         return Command::new(command_name)
             .args(args)
             .stdout(stdout)

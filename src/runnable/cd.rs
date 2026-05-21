@@ -9,9 +9,9 @@ impl Runnable for Cd {
         "cd"
     }
 
-    fn run(&self, args: &[&str], _ctx: &CommandContext) -> i32 {
-        let mut path = PathBuf::from(args[0]);
-        let stderr = &_ctx.stderr;
+    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
+        let mut path = PathBuf::from(args[0].as_str());
+        let stderr = &ctx.parsed_command.stderr;
         
         if path.starts_with("~") {
             if let Ok(home) = env::var("HOME") {

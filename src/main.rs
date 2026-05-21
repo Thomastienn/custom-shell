@@ -1,17 +1,16 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use utils::output::Output;
+use runnable::CommandContext;
+use tokenizer::Tokenizer;
+use parser::parse;
 
 mod runnable;
 mod utils;
+mod tokenizer;
+mod parser;
 
 fn main() {
     let commands = runnable::get_commands();
-    let default_ctx = runnable::CommandContext {
-        commands: &commands,
-        stdout: Output::Stdout,
-        stderr: Output::Stderr,
-    };
 
     loop {
         print!("$ ");
@@ -19,67 +18,15 @@ fn main() {
 
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
+        
+        let mut tokenizer = Tokenizer::new(input);
+        let tokens = tokenizer.tokenize();
 
-        let mut parts: Vec<String> = Vec::new();
-        let mut buffer = String::new();
-        let mut quote = String::new();
-        let mut escape = false;
-        for part in input.trim().chars() {
-            if escape {
-                buffer.push(part);
-                escape = false;
-                continue;
-            }
-            if part == '\\' && quote != "'" {
-                escape = true;
-                continue;
-            }
-            if quote.is_empty() {
-                if part == '\'' || part == '"' {
-                    quote.push(part);
-                    continue;
-                }
-            } else if part.to_string() == quote {
-                quote.clear();
-                continue;
-            }
-            if part.is_whitespace() && quote.is_empty() {
-                if !buffer.is_empty() {
-                    parts.push(buffer.clone());
-                    buffer.clear();
-                }
-            } else {
-                buffer.push(part);
-            }
-        }
-        if !buffer.is_empty() {
-            parts.push(buffer);
-        }
-        let command = &parts[0];
-        let redirect_pos = parts.iter().position(|s| s.contains(">"));
+        let ctx = CommandContext {
+            commands: &commands,
+            parsed_command: &parse(tokens).unwrap(),
+        };
 
-        let mut args_end = parts.len();
-        let mut ctx = default_ctx.clone();
-
-        if let Some(pos) = redirect_pos {
-            args_end = pos;
-            if pos + 1 < parts.len() {
-                let redirect_part = &parts[pos];
-                if redirect_part.starts_with("1>") || redirect_part.starts_with(">") {
-                    ctx.stdout = Output::File(parts[pos + 1].clone());
-                } else if redirect_part.starts_with("2>") {
-                    ctx.stderr = Output::File(parts[pos + 1].clone());
-                } else {
-                    eprintln!("Syntax error: unexpected redirection operator '{}'", redirect_part);
-                    continue;
-                }
-            } else {
-                eprintln!("Syntax error: expected file after '>'");
-                continue;
-            }
-        }
-        let args: Vec<&str> = parts[1..args_end].iter().map(|s| s.as_str()).collect();
-
-        runnable::dispatch(&ctx, command, args.as_slice());
+        runnable::dispatch(ctx);
     }
 }

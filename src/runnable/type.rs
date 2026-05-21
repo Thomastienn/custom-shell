@@ -9,10 +9,10 @@ impl Runnable for Type {
         "type"
     }
 
-    fn run(&self, args: &[&str], ctx: &CommandContext) -> i32 {
-        let command = args[0];
-        let stdout = &ctx.stdout;
-        let stderr = &ctx.stderr;
+    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
+        let command = args[0].as_str();
+        let stdout = &ctx.parsed_command.stdout;
+        let stderr = &ctx.parsed_command.stderr;
 
         if let Some(cmd) = ctx.commands.get(command) {
             if cmd.is_builtin() {
