@@ -1,7 +1,8 @@
-use std::fs::OpenOptions;
+use std::fs::{OpenOptions, self};
 use std::io;
 use std::process::Stdio;
 use std::io::Write;
+use std::path::Path;
 
 #[derive(Clone, Debug)]
 pub enum Output {
@@ -9,6 +10,13 @@ pub enum Output {
     Stderr,
     File(String),
     AppendFile(String),
+}
+
+fn create_parent_folder(path: &str) -> std::io::Result<()> {
+    if let Some(parent) = Path::new(path).parent() {
+        fs::create_dir_all(parent)?;
+    }
+    Ok(())
 }
 
 pub fn write_to_output(output: &Output, content: impl AsRef<str>) -> std::io::Result<()> {
@@ -42,6 +50,7 @@ pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
         Output::Stderr => Ok(Stdio::inherit()),
 
         Output::File(path) => {
+            create_parent_folder(path)?;
             let file = OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -52,6 +61,7 @@ pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
         }
 
         Output::AppendFile(path) => {
+            create_parent_folder(path)?;
             let file = OpenOptions::new()
                 .create(true)
                 .append(true)
