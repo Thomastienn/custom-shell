@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub enum Output {
     Stdout,
     File(String),
@@ -11,7 +12,7 @@ pub fn write_to_output(output: &Output, content: impl AsRef<str>) -> std::io::Re
             Ok(())
         }
         Output::File(filename) => {
-            std::fs::write(filename, content)
+            std::fs::write(filename, format!("{}\n", content))
         }
     }
 }

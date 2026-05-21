@@ -12,6 +12,7 @@ use std::fs::File;
 
 type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 
+#[derive(Clone)]
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
     pub stdout: Output,

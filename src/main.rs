@@ -7,7 +7,7 @@ mod utils;
 
 fn main() {
     let commands = runnable::get_commands();
-    let mut ctx = runnable::CommandContext {
+    let default_ctx = runnable::CommandContext {
         commands: &commands,
         stdout: Output::Stdout,
     };
@@ -58,6 +58,8 @@ fn main() {
         let redirect_pos = parts.iter().position(|s| s.contains(">"));
 
         let mut args_end = parts.len();
+        let mut ctx = default_ctx.clone();
+
         if let Some(pos) = redirect_pos {
             args_end = pos;
             if pos + 1 < parts.len() {
@@ -76,7 +78,5 @@ fn main() {
         let args: Vec<&str> = parts[1..args_end].iter().map(|s| s.as_str()).collect();
 
         runnable::dispatch(&ctx, command, args.as_slice());
-
-        ctx.stdout = Output::Stdout;
     }
 }
