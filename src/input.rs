@@ -43,13 +43,21 @@ impl Input<'_> {
                 continue;
             };
 
-            match key.code {
-                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    print!("\r\n");
-                    return Err(io::Error::new(ErrorKind::Interrupted, "Interrupted"));
-                }
+            let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
+            match key.code {
                 KeyCode::Char(c) => {
+                    if ctrl {
+                        match c {
+                            'c' => {
+                                print!("\r\n");
+                                return Err(io::Error::new(ErrorKind::Interrupted, "Interrupted"));
+                            }
+                            _ => {
+                                continue
+                            }
+                        }
+                    }
                     buffer.push(c);
                     print!("{c}");
                     stdout.flush()?;
