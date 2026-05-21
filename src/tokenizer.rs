@@ -1,8 +1,17 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RedirectOp {
+    Read,   // <
+    Write,  // >
+    Append, // >>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     Word(String),
-    RedirectStdout(String),
-    RedirectStderr(String),
+    Redirect {
+        fd: Option<u8>,
+        op: RedirectOp,
+    }
 }
 
 pub struct Tokenizer {
@@ -37,6 +46,52 @@ impl Tokenizer {
         }
     }
 
+    fn try_redirect(&mut self) -> Option<Token> {
+        let start = self.position;
+
+        let fd = self.try_take_fd();
+
+        let op = if self.starts_with(">>") {
+            self.position += 2;
+            Some(RedirectOp::Append)
+        } else if self.starts_with(">") {
+            self.position += 1;
+            Some(RedirectOp::Write)
+        } else if self.starts_with("<") {
+            self.position += 1;
+            Some(RedirectOp::Read)
+        } else {
+            None
+        };
+
+        match op {
+            Some(op) => Some(Token::Redirect { fd, op }),
+            None => {
+                self.position = start;
+                None
+            }
+        }
+    }
+
+    fn try_take_fd(&mut self) -> Option<u8> {
+        let start = self.position;
+
+        let c = self.peek()?;
+
+        if !c.is_ascii_digit() {
+            return None;
+        }
+
+        self.advance_char(c);
+
+        if self.starts_with(">") || self.starts_with("<") {
+            Some(c.to_digit(10).unwrap() as u8)
+        } else {
+            self.position = start;
+            None
+        }
+    }
+
     pub fn next_token(&mut self) -> Option<Token> {
         self.skip_whitespace();
 
@@ -44,19 +99,8 @@ impl Tokenizer {
             return None;
         }
 
-        if self.starts_with("2>") {
-            self.position += 2;
-            return Some(Token::RedirectStderr("2>".to_string()));
-        }
-
-        if self.starts_with("1>") {
-            self.position += 2;
-            return Some(Token::RedirectStdout("1>".to_string()));
-        }
-
-        if self.starts_with(">") {
-            self.position += 1;
-            return Some(Token::RedirectStdout(">".to_string()));
+        if let Some(redirect) = self.try_redirect() {
+            return Some(redirect);
         }
 
         let mut word = String::new();
@@ -94,11 +138,11 @@ impl Tokenizer {
                     break;
                 }
 
-                if c == '>' {
-                    break;
-                }
-
-                if self.starts_with("1>") || self.starts_with("2>") {
+                // If it's redirect
+                let start = self.position;
+                let is_redirect = self.try_redirect().is_some();
+                self.position = start;
+                if is_redirect {
                     break;
                 }
             }

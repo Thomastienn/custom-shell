@@ -1,15 +1,16 @@
+pub mod cd;
 pub mod echo;
 pub mod exit;
-pub mod r#type;
 pub mod pwd;
-pub mod cd;
+pub mod r#type;
 
-use crate::utils::path::{find_executable};
-use crate::utils::output;
 use crate::parser::ParsedCommand;
+use crate::utils::output;
+use crate::utils::output::Output;
+use crate::utils::path::find_executable;
 use std::collections::HashMap;
-use std::process::{Command, Stdio};
 use std::fs::File;
+use std::process::{Command, Stdio};
 
 type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 
@@ -31,15 +32,16 @@ pub fn get_commands() -> CommandMap {
     HashMap::from([
         (echo::Echo.name(), Box::new(echo::Echo) as Box<dyn Runnable>),
         (exit::Exit.name(), Box::new(exit::Exit) as Box<dyn Runnable>),
-        (r#type::Type.name(), Box::new(r#type::Type) as Box<dyn Runnable>),
+        (
+            r#type::Type.name(),
+            Box::new(r#type::Type) as Box<dyn Runnable>,
+        ),
         (pwd::Pwd.name(), Box::new(pwd::Pwd) as Box<dyn Runnable>),
         (cd::Cd.name(), Box::new(cd::Cd) as Box<dyn Runnable>),
     ])
 }
 
-pub fn dispatch(
-    ctx: CommandContext,
-) -> i32 {
+pub fn dispatch(ctx: CommandContext) -> i32 {
     let commands = ctx.commands;
     let p_stdout = &ctx.parsed_command.stdout;
     let p_stderr = &ctx.parsed_command.stderr;
@@ -47,15 +49,29 @@ pub fn dispatch(
     let args = &ctx.parsed_command.args;
 
     let stdout = match p_stdout {
-        output::Output::Stdout      => Stdio::inherit(),
-        output::Output::Stderr      => Stdio::inherit(),
-        output::Output::File(path)  => Stdio::from(File::create(path).unwrap()),
+        Output::Stdout => Stdio::inherit(),
+        Output::Stderr => Stdio::inherit(),
+        Output::File(path) => Stdio::from(File::create(path).unwrap()),
+        Output::AppendFile(path) => Stdio::from(
+            File::options()
+                .append(true)
+                .create(true)
+                .open(path)
+                .unwrap(),
+        ),
     };
 
     let stderr = match p_stderr {
-        output::Output::Stdout      => Stdio::inherit(),
-        output::Output::Stderr      => Stdio::inherit(),
-        output::Output::File(path)  => Stdio::from(File::create(path).unwrap()),
+        Output::Stdout => Stdio::inherit(),
+        Output::Stderr => Stdio::inherit(),
+        Output::File(path) => Stdio::from(File::create(path).unwrap()),
+        Output::AppendFile(path) => Stdio::from(
+            File::options()
+                .append(true)
+                .create(true)
+                .open(path)
+                .unwrap(),
+        ),
     };
 
     // Builtin

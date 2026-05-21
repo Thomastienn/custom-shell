@@ -1,4 +1,5 @@
 use crate::{tokenizer::Token, utils::output};
+use crate::tokenizer::RedirectOp;
 use output::Output;
 
 #[derive(Debug)]
@@ -30,15 +31,30 @@ pub fn parse(tokens: Vec<Token>) -> Result<ParsedCommand, String> {
                 i += 1;
             }
 
-            Token::RedirectStdout(op) => {
-                let file = expect_file(&tokens, i, op)?;
-                stdout = Output::File(file);
-                i += 2;
-            }
+            Token::Redirect { fd, op } => {
+                let op_str = format!(
+                    "{}{}",
+                    fd.map(|f| f.to_string()).unwrap_or_default(),
+                    match op {
+                        RedirectOp::Read => "<",
+                        RedirectOp::Write => ">",
+                        RedirectOp::Append => ">>",
+                    }
+                );
+                let file = expect_file(&tokens, i, &op_str)?;
 
-            Token::RedirectStderr(op) => {
-                let file = expect_file(&tokens, i, op)?;
-                stderr = Output::File(file);
+                let output = match op {
+                    RedirectOp::Write => Output::File(file),
+                    RedirectOp::Append => Output::AppendFile(file),
+                    RedirectOp::Read => unreachable!(),
+                };
+
+                match fd.unwrap_or(1) {
+                    1 => stdout = output,
+                    2 => stderr = output,
+                    n => return Err(format!("unsupported file descriptor: {}", n)),
+                }
+
                 i += 2;
             }
         }
