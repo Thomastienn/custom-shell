@@ -75,13 +75,19 @@ impl Input<'_> {
                 }
 
                 KeyCode::Tab => {
-                    self.cmd_pref.autocomplete(&buffer).first().map(|s| {
-                        let suffix = &s[buffer.len()..];
+                    let suggestions = self.cmd_pref.autocomplete(&buffer);
+
+                    if suggestions.is_empty() {
+                        print!("\x07");
+                        continue;
+                    }
+                    if suggestions.len() == 1 {
+                        let suffix = &suggestions[0][buffer.len()..];
                         buffer.push_str(suffix);
-                        buffer.push(' ');
                         print!("{suffix} ");
-                        stdout.flush().unwrap();
-                    });
+                        stdout.flush()?;
+                        continue;
+                    }
                 }
 
                 KeyCode::Enter => {
