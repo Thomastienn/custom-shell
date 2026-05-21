@@ -84,6 +84,7 @@ impl Input<'_> {
                     if suggestions.len() == 1 {
                         let suffix = &suggestions[0][buffer.len()..];
                         buffer.push_str(suffix);
+                        buffer.push(' ');
                         print!("{suffix} ");
                         stdout.flush()?;
                         continue;

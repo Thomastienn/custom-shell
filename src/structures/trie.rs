@@ -66,6 +66,9 @@ impl Trie {
 
             node = next_node;
         }
+        if node.is_word {
+            return Vec::new();
+        }
         let mut results = Vec::new();
         let mut current = prefix.to_string();
 
