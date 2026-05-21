@@ -31,9 +31,11 @@ pub fn write_to_output(output: &Output, content: impl AsRef<str>) -> std::io::Re
             Ok(())
         }
         Output::File(filename) => {
+            create_parent_folder(filename)?;
             std::fs::write(filename, format!("{}\n", content))
         }
         Output::AppendFile(filename) => {
+            create_parent_folder(filename)?;
             let mut file = OpenOptions::new()
                 .create(true)
                 .append(true)
