@@ -12,19 +12,13 @@ impl Runnable for Pwd {
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
         let content = env::current_dir().unwrap().display().to_string();
         let stdout = &ctx.parsed_command.stdout;
-        let stderr = &ctx.parsed_command.stderr;
+        // let stderr = &ctx.parsed_command.stderr;
         
         match output::write_to_output(stdout, content.as_str()) {
             Ok(_) => return 0,
             Err(e) => {
-                let content_error = format!("Error writing to output: {}", e);
-                match output::write_to_output(stderr, content_error.as_str()) {
-                    Ok(_) => return 1,
-                    Err(e) => {
-                        eprintln!("Error writing to error output: {}", e);
-                        return 1;
-                    }           
-                }
+                eprintln!("Error writing to error output: {}", e);
+                return 1;
             }
         }
     }
