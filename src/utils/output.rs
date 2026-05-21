@@ -27,7 +27,7 @@ pub fn write_to_output(output: &Output, content: impl AsRef<str>) -> std::io::Re
             Ok(())
         }
         Output::Stderr => {
-            println!("{}", content);
+            eprintln!("{}", content);
             Ok(())
         }
         Output::File(filename) => {

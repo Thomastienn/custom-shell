@@ -68,8 +68,8 @@ pub fn dispatch(ctx: CommandContext) -> i32 {
 
     // External
     if let Some(path) = find_executable(command.as_str()) {
-        let command_name = path.split('/').last().unwrap_or(command.as_str());
-        return Command::new(command_name)
+        // let command_name = path.split('/').last().unwrap_or(command.as_str());
+        return Command::new(&path)
             .args(args)
             .stdout(stdout)
             .stderr(stderr)
