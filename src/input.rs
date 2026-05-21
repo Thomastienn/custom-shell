@@ -51,10 +51,12 @@ impl Input<'_> {
                         match c {
                             'c' => {
                                 print!("\r\n");
+                                stdout.flush()?;
                                 return Err(io::Error::new(ErrorKind::Interrupted, "Interrupted"));
                             }
                             'j' => {
                                 print!("\r\n");
+                                stdout.flush()?;
                                 return Ok(buffer);
                             }
                             _ => {
@@ -79,6 +81,7 @@ impl Input<'_> {
 
                     if suggestions.is_empty() {
                         print!("\x07");
+                        stdout.flush()?;
                         continue;
                     }
                     if suggestions.len() == 1 {
@@ -93,6 +96,7 @@ impl Input<'_> {
 
                 KeyCode::Enter => {
                     print!("\r\n");
+                    stdout.flush()?;
                     return Ok(buffer);
                 }
 
