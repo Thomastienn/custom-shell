@@ -11,11 +11,20 @@ impl Runnable for Echo {
     fn run(&self, args: &[&str], _ctx: &CommandContext) -> i32 {
         let content = args.join(" ");
         let stdout = &_ctx.stdout;
+        let stderr = &_ctx.stderr;
+        
         match output::write_to_output(stdout, content.as_str()) {
             Ok(_) => return 0,
             Err(e) => {
                 eprintln!("Error writing to output: {}", e);
-                return 1;
+                let content_error = format!("Error writing to output: {}", e);
+                match output::write_to_output(stderr, content_error.as_str()) {
+                    Ok(_) => return 1,
+                    Err(e) => {
+                        eprintln!("Error writing to error output: {}", e);
+                        return 1;
+                    }
+                }
             }
         }
     }

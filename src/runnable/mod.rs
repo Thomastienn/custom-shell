@@ -5,7 +5,7 @@ pub mod pwd;
 pub mod cd;
 
 use crate::utils::path::{find_executable};
-use crate::utils::output::Output;
+use crate::utils::output;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
 use std::fs::File;
@@ -15,7 +15,8 @@ type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 #[derive(Clone)]
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
-    pub stdout: Output,
+    pub stdout: output::Output,
+    pub stderr: output::Output,
 }
 
 pub trait Runnable {
@@ -50,8 +51,9 @@ pub fn dispatch(
     }
 
     let stdout = match output {
-        Output::Stdout      => Stdio::inherit(),
-        Output::File(path)  => Stdio::from(File::create(path).unwrap()),
+        output::Output::Stdout      => Stdio::inherit(),
+        output::Output::Stderr      => Stdio::inherit(),
+        output::Output::File(path)  => Stdio::from(File::create(path).unwrap()),
     };
 
     // External
@@ -65,6 +67,12 @@ pub fn dispatch(
             .unwrap_or(1);
     }
 
-    eprintln!("{}: command not found", command);
-    127
+    let content_error = format!("{}: command not found", command);
+    match output::write_to_output(output, content_error.as_str()) {
+        Ok(_) => return 127,
+        Err(e) => {
+            eprintln!("Error writing to output: {}", e);
+            return 1;
+        }
+    }
 }

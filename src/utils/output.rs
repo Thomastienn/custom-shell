@@ -1,6 +1,7 @@
 #[derive(Clone)]
 pub enum Output {
     Stdout,
+    Stderr,
     File(String),
 }
 
@@ -9,6 +10,10 @@ pub fn write_to_output(output: &Output, content: impl AsRef<str>) -> std::io::Re
     match output {
         Output::Stdout => {
             println!("{}", content);
+            Ok(())
+        }
+        Output::Stderr => {
+            eprintln!("{}", content);
             Ok(())
         }
         Output::File(filename) => {

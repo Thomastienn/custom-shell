@@ -10,6 +10,7 @@ fn main() {
     let default_ctx = runnable::CommandContext {
         commands: &commands,
         stdout: Output::Stdout,
+        stderr: Output::Stderr,
     };
 
     loop {
@@ -66,6 +67,8 @@ fn main() {
                 let redirect_part = &parts[pos];
                 if redirect_part.starts_with("1>") || redirect_part.starts_with(">") {
                     ctx.stdout = Output::File(parts[pos + 1].clone());
+                } else if redirect_part.starts_with("2>") {
+                    ctx.stderr = Output::File(parts[pos + 1].clone());
                 } else {
                     eprintln!("Syntax error: unexpected redirection operator '{}'", redirect_part);
                     continue;
