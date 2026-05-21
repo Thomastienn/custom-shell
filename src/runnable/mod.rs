@@ -41,7 +41,8 @@ pub fn dispatch(
     ctx: CommandContext,
 ) -> i32 {
     let commands = ctx.commands;
-    let output = &ctx.parsed_command.stdout;
+    let p_stdout = &ctx.parsed_command.stdout;
+    let p_stderr = &ctx.parsed_command.stderr;
     let command = &ctx.parsed_command.command;
     let args = &ctx.parsed_command.args;
 
@@ -50,7 +51,13 @@ pub fn dispatch(
         return cmd.run(args, ctx);
     }
 
-    let stdout = match output {
+    let stdout = match p_stdout {
+        output::Output::Stdout      => Stdio::inherit(),
+        output::Output::Stderr      => Stdio::inherit(),
+        output::Output::File(path)  => Stdio::from(File::create(path).unwrap()),
+    };
+
+    let stderr = match p_stderr {
         output::Output::Stdout      => Stdio::inherit(),
         output::Output::Stderr      => Stdio::inherit(),
         output::Output::File(path)  => Stdio::from(File::create(path).unwrap()),
@@ -62,13 +69,14 @@ pub fn dispatch(
         return Command::new(command_name)
             .args(args)
             .stdout(stdout)
+            .stderr(stderr)
             .status()
             .map(|s| s.code().unwrap_or(1))
             .unwrap_or(1);
     }
 
     let content_error = format!("{}: command not found", command);
-    match output::write_to_output(output, content_error.as_str()) {
+    match output::write_to_output(p_stdout, content_error.as_str()) {
         Ok(_) => return 127,
         Err(e) => {
             eprintln!("Error writing to output: {}", e);
