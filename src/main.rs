@@ -1,29 +1,42 @@
 #[allow(unused_imports)]
-use std::io::{self, Write};
+use std::io::{self, Write, ErrorKind};
 use runnable::CommandContext;
+use structures::trie::Trie;
 use tokenizer::Tokenizer;
 use parser::parse;
+use input::Input;
 
 mod runnable;
 mod utils;
 mod tokenizer;
 mod parser;
+mod structures;
+mod input;
 
 fn main() {
     let commands = runnable::get_commands();
+    let mut trie = Trie::new();
+    for cmd in commands.keys() {
+        trie.insert(cmd);
+    }
+
+    let input_handler = Input::new(&trie);
 
     loop {
-        print!("$ ");
-        io::stdout().flush().unwrap();
+        let input_str = match input_handler.read_line("$ ") {
+            Ok(line) => line,
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+            Err(e) => {
+                eprintln!("input error: {e}");
+                break;
+            }
+        };
 
-        if input.trim().is_empty() {
+        if input_str.trim().is_empty() {
             continue;
         }
         
-        let mut tokenizer = Tokenizer::new(input);
+        let mut tokenizer = Tokenizer::new(input_str);
         let tokens = tokenizer.tokenize();
 
         match parse(tokens) {
