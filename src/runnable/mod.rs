@@ -6,7 +6,7 @@ pub mod r#type;
 
 use crate::parser::ParsedCommand;
 use crate::utils::output;
-use crate::utils::path::find_executable;
+use crate::utils::path;
 use std::collections::HashMap;
 use std::process::{Command};
 
@@ -67,9 +67,9 @@ pub fn dispatch(ctx: CommandContext) -> i32 {
     }
 
     // External
-    if let Some(path) = find_executable(command.as_str()) {
-        // let command_name = path.split('/').last().unwrap_or(command.as_str());
-        return Command::new(&path)
+    if let Some(path) = path::find_executable(command.as_str()) {
+        let command_name = path.split('/').last().unwrap_or(command.as_str());
+        return Command::new(command_name)
             .args(args)
             .stdout(stdout)
             .stderr(stderr)

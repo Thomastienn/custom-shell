@@ -53,6 +53,10 @@ impl Input<'_> {
                                 print!("\r\n");
                                 return Err(io::Error::new(ErrorKind::Interrupted, "Interrupted"));
                             }
+                            'j' => {
+                                print!("\r\n");
+                                return Ok(buffer);
+                            }
                             _ => {
                                 continue
                             }
