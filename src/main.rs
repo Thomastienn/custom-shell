@@ -41,7 +41,7 @@ fn main() {
 
         match parse(tokens) {
             Ok(parsed_command) => {
-                dbg!("Parsed command: {:?}", &parsed_command);
+                // dbg!("Parsed command: {:?}", &parsed_command);
                 let ctx = CommandContext {
                     commands: &commands,
                     parsed_command: &parsed_command,
