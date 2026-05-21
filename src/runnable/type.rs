@@ -1,12 +1,11 @@
 use crate::runnable::{CommandContext, Runnable };
-use crate::utils::path::{find_executable};
 use crate::utils::output;
 
 pub struct Type;
 
 impl Runnable for Type {
-    fn name(&self) -> &'static str {
-        "type"
+    fn name(&self) -> String {
+        "type".to_string()
     }
 
     fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
@@ -24,16 +23,18 @@ impl Runnable for Type {
                         return 1;
                     }
                 }
-            }
-        }
-
-        if let Some(path) = find_executable(command) {
-            let content = format!("{} is {}", command, path);
-            match output::write_to_output(stdout, content.as_str()) {
-                Ok(_) => return 0,
-                Err(e) => {
-                    eprintln!("Error writing to error output: {}", e);
+            } else {
+                let Some(full_path) = cmd.full_path() else {
+                    eprintln!("Error: Command {} does not have a full path", command);
                     return 1;
+                };
+                let content = format!("{} is {}", command, full_path);
+                match output::write_to_output(stdout, content.as_str()) {
+                    Ok(_) => return 0,
+                    Err(e) => {
+                        eprintln!("Error writing to error output: {}", e);
+                        return 1;
+                    }
                 }
             }
         }

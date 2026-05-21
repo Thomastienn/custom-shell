@@ -5,8 +5,8 @@ use std::{env, path::PathBuf};
 pub struct Cd;
 
 impl Runnable for Cd {
-    fn name(&self) -> &'static str {
-        "cd"
+    fn name(&self) -> String {
+        "cd".to_string()
     }
 
     fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {

@@ -5,8 +5,8 @@ use std::env;
 pub struct Pwd;
 
 impl Runnable for Pwd {
-    fn name(&self) -> &'static str {
-        "pwd"
+    fn name(&self) -> String {
+        "pwd".to_string()
     }
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {

@@ -4,8 +4,8 @@ use crate::utils::output;
 pub struct Echo;
 
 impl Runnable for Echo {
-    fn name(&self) -> &'static str {
-        "echo"
+    fn name(&self) -> String {
+        "echo".to_string()
     }
 
     fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
