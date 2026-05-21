@@ -6,11 +6,9 @@ pub mod r#type;
 
 use crate::parser::ParsedCommand;
 use crate::utils::output;
-use crate::utils::output::Output;
 use crate::utils::path::find_executable;
 use std::collections::HashMap;
-use std::fs::File;
-use std::process::{Command, Stdio};
+use std::process::{Command};
 
 type CommandMap = HashMap<&'static str, Box<dyn Runnable>>;
 
@@ -48,30 +46,19 @@ pub fn dispatch(ctx: CommandContext) -> i32 {
     let command = &ctx.parsed_command.command;
     let args = &ctx.parsed_command.args;
 
-    let stdout = match p_stdout {
-        Output::Stdout => Stdio::inherit(),
-        Output::Stderr => Stdio::inherit(),
-        Output::File(path) => Stdio::from(File::create(path).unwrap()),
-        Output::AppendFile(path) => Stdio::from(
-            File::options()
-                .append(true)
-                .create(true)
-                .open(path)
-                .unwrap(),
-        ),
+    let stdout = match output::output_to_stdio(p_stdout) {
+        Ok(stdout) => stdout,
+        Err(e) => {
+            eprintln!("Error setting up stdout: {}", e);
+            return 1;
+        }
     };
-
-    let stderr = match p_stderr {
-        Output::Stdout => Stdio::inherit(),
-        Output::Stderr => Stdio::inherit(),
-        Output::File(path) => Stdio::from(File::create(path).unwrap()),
-        Output::AppendFile(path) => Stdio::from(
-            File::options()
-                .append(true)
-                .create(true)
-                .open(path)
-                .unwrap(),
-        ),
+    let stderr = match output::output_to_stdio(p_stderr) {
+        Ok(stderr) => stderr,
+        Err(e) => {
+            eprintln!("Error setting up stderr: {}", e);
+            return 1;
+        }
     };
 
     // Builtin

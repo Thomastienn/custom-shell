@@ -35,7 +35,7 @@ impl Trie {
         node.is_word = true;
     }
 
-    pub fn search(&self, s: &str) -> bool {
+    pub fn _search(&self, s: &str) -> bool {
         let mut node = &self.root;
         for ch in s.chars() {
             let Some(next_node) = node.children.get(&ch) else {
@@ -46,7 +46,7 @@ impl Trie {
         node.is_word
     }
 
-    pub fn starts_with(&self, prefix: &str) -> bool {
+    pub fn _starts_with(&self, prefix: &str) -> bool {
         let mut node = &self.root;
         for ch in prefix.chars() {
             let Some(next_node) = node.children.get(&ch) else {

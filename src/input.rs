@@ -66,7 +66,8 @@ impl Input<'_> {
                     self.cmd_pref.autocomplete(&buffer).first().map(|s| {
                         let suffix = &s[buffer.len()..];
                         buffer.push_str(suffix);
-                        print!("{suffix}");
+                        buffer.push(' ');
+                        print!("{suffix} ");
                         stdout.flush().unwrap();
                     });
                 }
