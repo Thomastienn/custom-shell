@@ -30,16 +30,7 @@ pub trait Runnable {
 }
 
 pub fn get_commands() -> CommandMap {
-    let mut cmds = HashMap::from([
-        (echo::Echo.name(), Box::new(echo::Echo) as Box<dyn Runnable>),
-        (exit::Exit.name(), Box::new(exit::Exit) as Box<dyn Runnable>),
-        (
-            r#type::Type.name(),
-            Box::new(r#type::Type) as Box<dyn Runnable>,
-        ),
-        (pwd::Pwd.name(), Box::new(pwd::Pwd) as Box<dyn Runnable>),
-        (cd::Cd.name(), Box::new(cd::Cd) as Box<dyn Runnable>),
-    ]);
+    let mut cmds = HashMap::new();
 
     let executables = PathUtils::all_executables_in_path();
 
@@ -56,6 +47,18 @@ pub fn get_commands() -> CommandMap {
         );
     }
 
+    let builtin_cmds = HashMap::from([
+        (echo::Echo.name(), Box::new(echo::Echo) as Box<dyn Runnable>),
+        (exit::Exit.name(), Box::new(exit::Exit) as Box<dyn Runnable>),
+        (
+            r#type::Type.name(),
+            Box::new(r#type::Type) as Box<dyn Runnable>,
+        ),
+        (pwd::Pwd.name(), Box::new(pwd::Pwd) as Box<dyn Runnable>),
+        (cd::Cd.name(), Box::new(cd::Cd) as Box<dyn Runnable>),
+    ]);
+
+    cmds.extend(builtin_cmds);
     cmds
 }
 
