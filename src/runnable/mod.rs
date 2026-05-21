@@ -6,6 +6,7 @@ pub mod pwd;
 pub mod r#type;
 
 use crate::parser::ParsedCommand;
+use crate::utils::output;
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
 use std::collections::HashMap;
@@ -66,6 +67,13 @@ pub fn dispatch(ctx: CommandContext) -> i32 {
     let commands = ctx.commands;
     let command = &ctx.parsed_command.command;
     let args = &ctx.parsed_command.args;
+
+    let stdout = &ctx.parsed_command.stdout;
+    let stderr = &ctx.parsed_command.stderr;
+
+    // just create the file
+    let _ = output::output_to_stdio(stdout);
+    let _ = output::output_to_stdio(stderr);
 
     if let Some(cmd) = commands.get(command) {
         return cmd.run(args, ctx);
