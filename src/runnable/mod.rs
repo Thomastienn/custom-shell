@@ -46,11 +46,6 @@ pub fn dispatch(
     let command = &ctx.parsed_command.command;
     let args = &ctx.parsed_command.args;
 
-    // Builtin
-    if let Some(cmd) = commands.get(command.as_str()) {
-        return cmd.run(args, ctx);
-    }
-
     let stdout = match p_stdout {
         output::Output::Stdout      => Stdio::inherit(),
         output::Output::Stderr      => Stdio::inherit(),
@@ -62,6 +57,11 @@ pub fn dispatch(
         output::Output::Stderr      => Stdio::inherit(),
         output::Output::File(path)  => Stdio::from(File::create(path).unwrap()),
     };
+
+    // Builtin
+    if let Some(cmd) = commands.get(command.as_str()) {
+        return cmd.run(args, ctx);
+    }
 
     // External
     if let Some(path) = find_executable(command.as_str()) {
