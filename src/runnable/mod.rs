@@ -7,16 +7,17 @@ pub mod r#type;
 
 use crate::parser::ParsedCommand;
 use crate::utils::output;
+use crate::structures::trie::Trie;
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
 use std::collections::HashMap;
 
 type CommandMap = HashMap<String, Box<dyn Runnable>>;
 
-#[derive(Clone)]
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
     pub parsed_command: &'a ParsedCommand,
+    pub file_trie: &'a mut Trie,
 }
 
 pub trait Runnable {

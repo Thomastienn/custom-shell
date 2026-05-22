@@ -22,16 +22,15 @@ impl Drop for RawModeGuard {
     }
 }
 
-pub struct Input<'a> {
-    cmd_pref: &'a Trie
+pub struct InputCtx<'a> {
+    pub cmd_pref: &'a Trie,
+    pub file_pref: &'a Trie,
 }
 
-impl Input<'_> {
-    pub fn new(commands: &Trie) -> Input<'_> {
-        Input { cmd_pref: commands }
-    }
+pub struct Input;
 
-    pub fn read_line(&self, prompt: &str) -> io::Result<String> {
+impl Input {
+    pub fn read_line(prompt: &str, ctx: InputCtx) -> io::Result<String> {
         let _raw_mode = RawModeGuard::new()?;
 
         let mut stdout = io::stdout();
@@ -93,7 +92,18 @@ impl Input<'_> {
                 }
 
                 KeyCode::Tab => {
-                    let mut suggestions = self.cmd_pref.autocomplete(&buffer);
+                    // A broken way to see if the user is trying to autocomplete the command or the
+                    // argument, but it works for now
+                    let mut suggestions: Vec<String>;
+                    let mut partial: &str = &buffer;
+                    if buffer.split_whitespace().count() > 1 {
+                        let last_token = buffer.split_whitespace().last().unwrap_or("");
+                        suggestions = ctx.file_pref.autocomplete(last_token);
+                        partial = last_token;
+                    } else {
+                        suggestions = ctx.cmd_pref.autocomplete(&buffer);
+                    }
+                    // dbg!(&suggestions);
 
                     if suggestions.is_empty() {
                         print!("\x07");
@@ -101,7 +111,7 @@ impl Input<'_> {
                         continue;
                     }
                     if suggestions.len() == 1 {
-                        let suffix = &suggestions[0][buffer.len()..];
+                        let suffix = &suggestions[0][partial.len()..];
                         buffer.push_str(suffix);
                         buffer.push(' ');
                         print!("{suffix} ");
@@ -110,8 +120,8 @@ impl Input<'_> {
                     }
 
                     let lcp = string::lcp(&suggestions);
-                    if lcp.len() > buffer.len() {
-                        let suffix = &lcp[buffer.len()..];
+                    if lcp.len() > partial.len() {
+                        let suffix = &lcp[partial.len()..];
                         buffer.push_str(suffix);
                         print!("{suffix}");
                         stdout.flush()?;

@@ -27,6 +27,10 @@ impl Trie {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.root = TrieNode::new();
+    }
+
     pub fn insert(&mut self, s: &str) {
         let mut node = &mut self.root;
         for ch in s.chars() {

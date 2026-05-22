@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write, ErrorKind};
+use crate::{input::InputCtx, utils::path::PathUtils};
 use runnable::CommandContext;
 use structures::trie::Trie;
 use tokenizer::Tokenizer;
@@ -15,15 +16,21 @@ mod input;
 
 fn main() {
     let commands = runnable::get_commands();
-    let mut trie = Trie::new();
+    let mut cmd_trie = Trie::new();
     for cmd in commands.keys() {
-        trie.insert(cmd);
+        cmd_trie.insert(cmd);
+    }
+    let mut file_trie = Trie::new();
+    for file in PathUtils::all_files() {
+        file_trie.insert(PathUtils::get_filename(&file).unwrap().as_str());
     }
 
-    let input_handler = Input::new(&trie);
-
     loop {
-        let input_str = match input_handler.read_line("$ ") {
+        let input_ctx = InputCtx {
+            cmd_pref: &cmd_trie,
+            file_pref: &file_trie,
+        };
+        let input_str = match Input::read_line("$ ", input_ctx) {
             Ok(line) => line,
 
             Err(e) => {
@@ -45,6 +52,7 @@ fn main() {
                 let ctx = CommandContext {
                     commands: &commands,
                     parsed_command: &parsed_command,
+                    file_trie: &mut file_trie,
                 };
                 runnable::dispatch(ctx);
             },

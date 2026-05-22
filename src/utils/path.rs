@@ -11,6 +11,16 @@ impl PathUtils {
         file_path.exists() && file_path.metadata().unwrap().permissions().mode() & 0o111 != 0
     }
 
+    pub fn all_files() -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        if let Ok(entries) = fs::read_dir(".") {
+            for entry in entries.flatten() {
+                files.push(entry.path());
+            }
+        }
+        files
+    }
+
     pub fn all_executables_in_path() -> Vec<PathBuf> {
         let mut executables = Vec::new();
         if let Ok(path_str) = env::var("PATH") {
