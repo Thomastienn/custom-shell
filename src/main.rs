@@ -20,20 +20,25 @@ fn main() {
     for cmd in commands.keys() {
         cmd_trie.insert(cmd);
     }
-    let mut file_trie = Trie::new();
-    for file in PathUtils::all_files_rec_here() {
-        // dbg!(PathUtils::get_relative_path(&file.canonicalize().ok().unwrap()).unwrap());
-        file_trie.insert(
-            PathUtils::get_relative_path(&file.canonicalize().ok().unwrap())
-                .unwrap()
-                .as_str(),
-        );
+    let mut filesystem_trie = Trie::new();
+    for entry in PathUtils::all_entries_rec_here() {
+        // dbg!(PathUtils::get_relative_path(&entry.canonicalize().ok().unwrap()).unwrap());
+        let is_dir = entry.is_dir();
+
+        let full_path = entry.canonicalize().ok().unwrap();
+        let mut rel = PathUtils::get_relative_path(&full_path).unwrap();
+
+        if is_dir {
+            rel.push('/');
+        }
+
+        filesystem_trie.insert(&rel);
     }
 
     loop {
         let input_ctx = InputCtx {
             cmd_pref: &cmd_trie,
-            file_pref: &file_trie,
+            filesystem_pref: &filesystem_trie,
         };
         let input_str = match Input::read_line("$ ", input_ctx) {
             Ok(line) => line,
@@ -57,7 +62,7 @@ fn main() {
                 let ctx = CommandContext {
                     commands: &commands,
                     parsed_command: &parsed_command,
-                    file_trie: &mut file_trie,
+                    file_trie: &mut filesystem_trie,
                 };
                 runnable::dispatch(ctx);
             }

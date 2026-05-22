@@ -24,7 +24,7 @@ impl Drop for RawModeGuard {
 
 pub struct InputCtx<'a> {
     pub cmd_pref: &'a Trie,
-    pub file_pref: &'a Trie,
+    pub filesystem_pref: &'a Trie,
 }
 
 pub struct Input;
@@ -98,7 +98,7 @@ impl Input {
                     let mut partial: &str = &buffer;
                     if buffer.split_whitespace().count() > 1 {
                         let last_token = buffer.split_whitespace().last().unwrap_or("");
-                        suggestions = ctx.file_pref.autocomplete(last_token);
+                        suggestions = ctx.filesystem_pref.autocomplete(last_token);
                         partial = last_token;
                     } else {
                         suggestions = ctx.cmd_pref.autocomplete(&buffer);
@@ -113,8 +113,11 @@ impl Input {
                     if suggestions.len() == 1 {
                         let suffix = &suggestions[0][partial.len()..];
                         buffer.push_str(suffix);
-                        buffer.push(' ');
-                        print!("{suffix} ");
+                        print!("{suffix}");
+                        if !suggestions[0].ends_with('/') {
+                            print!(" ");
+                            buffer.push(' ');
+                        }  
                         stdout.flush()?;
                         continue;
                     }

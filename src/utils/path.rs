@@ -21,23 +21,24 @@ impl PathUtils {
         files
     }
 
-    pub fn all_files_rec_here() -> Vec<PathBuf> {
-        Self::all_files_rec(Path::new("."))
+    pub fn all_entries_rec_here() -> Vec<PathBuf> {
+        Self::all_entries_rec(Path::new("."))
     }
 
-    pub fn all_files_rec(dir: &Path) -> Vec<PathBuf> {
-        let mut files = Vec::new();
-        if let Ok(entries) = fs::read_dir(dir) {
-            for entry in entries.flatten() {
+    pub fn all_entries_rec(dir: &Path) -> Vec<PathBuf> {
+        let mut entries = Vec::new();
+        entries.push(dir.to_path_buf());
+        if let Ok(dir_entries) = fs::read_dir(dir) {
+            for entry in dir_entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    files.extend(Self::all_files_rec(&path));
+                    entries.extend(Self::all_entries_rec(&path));
                 } else {
-                    files.push(path);
+                    entries.push(path);
                 }
             }
         }
-        files
+        entries
     }
 
     pub fn all_executables_in_path() -> Vec<PathBuf> {
