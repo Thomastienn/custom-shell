@@ -4,6 +4,7 @@ pub mod exit;
 pub mod external;
 pub mod pwd;
 pub mod r#type;
+pub mod complete;
 
 use crate::parser::ParsedCommand;
 use crate::utils::output;
@@ -49,18 +50,18 @@ pub fn get_commands() -> CommandMap {
         );
     }
 
-    let builtin_cmds = HashMap::from([
-        (echo::Echo.name(), Box::new(echo::Echo) as Box<dyn Runnable>),
-        (exit::Exit.name(), Box::new(exit::Exit) as Box<dyn Runnable>),
-        (
-            r#type::Type.name(),
-            Box::new(r#type::Type) as Box<dyn Runnable>,
-        ),
-        (pwd::Pwd.name(), Box::new(pwd::Pwd) as Box<dyn Runnable>),
-        (cd::Cd.name(), Box::new(cd::Cd) as Box<dyn Runnable>),
-    ]);
+    let builtin_cmds = [
+        Box::new(cd::Cd) as Box<dyn Runnable>,
+        Box::new(echo::Echo) as Box<dyn Runnable>,
+        Box::new(exit::Exit) as Box<dyn Runnable>,
+        Box::new(pwd::Pwd) as Box<dyn Runnable>,
+        Box::new(r#type::Type) as Box<dyn Runnable>,
+        Box::new(complete::Complete) as Box<dyn Runnable>,
+    ];
+    for cmd in builtin_cmds {
+        cmds.insert(cmd.name(), cmd);
+    }
 
-    cmds.extend(builtin_cmds);
     cmds
 }
 
