@@ -1,18 +1,18 @@
-#[allow(unused_imports)]
-use std::io::{self, Write, ErrorKind};
 use crate::{input::InputCtx, utils::path::PathUtils};
+use input::Input;
+use parser::parse;
 use runnable::CommandContext;
+#[allow(unused_imports)]
+use std::io::{self, ErrorKind, Write};
 use structures::trie::Trie;
 use tokenizer::Tokenizer;
-use parser::parse;
-use input::Input;
 
-mod runnable;
-mod utils;
-mod tokenizer;
-mod parser;
-mod structures;
 mod input;
+mod parser;
+mod runnable;
+mod structures;
+mod tokenizer;
+mod utils;
 
 fn main() {
     let commands = runnable::get_commands();
@@ -21,8 +21,13 @@ fn main() {
         cmd_trie.insert(cmd);
     }
     let mut file_trie = Trie::new();
-    for file in PathUtils::all_files() {
-        file_trie.insert(PathUtils::get_filename(&file).unwrap().as_str());
+    for file in PathUtils::all_files_rec_here() {
+        // dbg!(PathUtils::get_relative_path(&file.canonicalize().ok().unwrap()).unwrap());
+        file_trie.insert(
+            PathUtils::get_relative_path(&file.canonicalize().ok().unwrap())
+                .unwrap()
+                .as_str(),
+        );
     }
 
     loop {
@@ -42,7 +47,7 @@ fn main() {
         if input_str.trim().is_empty() {
             continue;
         }
-        
+
         let mut tokenizer = Tokenizer::new(input_str);
         let tokens = tokenizer.tokenize();
 
@@ -55,7 +60,7 @@ fn main() {
                     file_trie: &mut file_trie,
                 };
                 runnable::dispatch(ctx);
-            },
+            }
             Err(e) => eprintln!("Error parsing command: {}", e),
         }
     }

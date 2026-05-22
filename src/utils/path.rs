@@ -21,6 +21,25 @@ impl PathUtils {
         files
     }
 
+    pub fn all_files_rec_here() -> Vec<PathBuf> {
+        Self::all_files_rec(Path::new("."))
+    }
+
+    pub fn all_files_rec(dir: &Path) -> Vec<PathBuf> {
+        let mut files = Vec::new();
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    files.extend(Self::all_files_rec(&path));
+                } else {
+                    files.push(path);
+                }
+            }
+        }
+        files
+    }
+
     pub fn all_executables_in_path() -> Vec<PathBuf> {
         let mut executables = Vec::new();
         if let Ok(path_str) = env::var("PATH") {
@@ -48,5 +67,10 @@ impl PathUtils {
         path.canonicalize()
             .ok()
             .and_then(|p| p.to_str().map(|s| s.to_string()))
+    }
+
+    pub fn get_relative_path(full_path: &PathBuf) -> Option<String> {
+        let current_dir = env::current_dir().ok()?;
+        full_path.strip_prefix(current_dir).ok().and_then(|p| p.to_str().map(|s| s.to_string()))
     }
 }
