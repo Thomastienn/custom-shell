@@ -61,6 +61,26 @@ impl Trie {
         true
     }
 
+    fn single_path(&self, node: &TrieNode) -> Option<String> {
+        if node.children.is_empty() {
+            return Some(String::new());
+        }
+        if node.children.len() == 1 {
+            let (_, next_node) = node.children.iter().next().unwrap();
+            let child_path = self.single_path(next_node);
+            let mut result = String::new();
+            result.push(*node.children.keys().next().unwrap());
+            if let Some(child_path) = child_path {
+                result.push_str(&child_path);
+            } else {
+                return None;
+            }
+            Some(result)
+        } else {
+            None
+        }
+    }
+
     pub fn autocomplete(&self, prefix: &str) -> Vec<String> {
         let mut node = &self.root;
         for ch in prefix.chars() {
@@ -71,6 +91,10 @@ impl Trie {
             node = next_node;
         }
         if node.is_word {
+            let single_path = self.single_path(node);
+            if let Some(full_str) = single_path {
+                return vec![format!("{}{}", prefix, full_str)];
+            }
             return Vec::new();
         }
         let mut results = Vec::new();
