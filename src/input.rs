@@ -5,6 +5,7 @@ use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
 use crate::structures::trie::Trie;
+use crate::structures::string;
 
 struct RawModeGuard;
 
@@ -104,6 +105,15 @@ impl Input<'_> {
                         buffer.push_str(suffix);
                         buffer.push(' ');
                         print!("{suffix} ");
+                        stdout.flush()?;
+                        continue;
+                    }
+
+                    let lcp = string::lcp(&suggestions);
+                    if lcp.len() > buffer.len() {
+                        let suffix = &lcp[buffer.len()..];
+                        buffer.push_str(suffix);
+                        print!("{suffix}");
                         stdout.flush()?;
                         continue;
                     }
