@@ -1,9 +1,28 @@
 use crate::runnable::{CommandContext, Runnable};
+use crate::structures::trie::Trie;
 use crate::utils::output;
 use crate::utils::path::PathUtils;
 use std::{env, path::PathBuf};
 
 pub struct Cd;
+
+impl Cd {
+    pub fn build_filesystem_trie(trie: &mut Trie) {
+        for entry in PathUtils::all_entries_rec_here() {
+            let is_dir = entry.is_dir();
+
+            let full_path = entry.canonicalize().ok().unwrap();
+            let mut rel = PathUtils::get_relative_path(&full_path).unwrap();
+
+            if is_dir {
+                rel.push('/');
+            }
+            // dbg!(&rel);
+
+            trie.insert(&rel);
+        }
+    }
+}
 
 impl Runnable for Cd {
     fn name(&self) -> String {
@@ -26,9 +45,7 @@ impl Runnable for Cd {
             env::set_current_dir(path).unwrap();
 
             file_trie.clear();
-            for file in PathUtils::all_files() {
-                file_trie.insert(PathUtils::get_filename(&file).unwrap().as_str());
-            }
+            Cd::build_filesystem_trie(file_trie);
 
             return 0;
         }

@@ -1,11 +1,11 @@
-use std::io::{self, Write, ErrorKind};
 use std::collections::VecDeque;
+use std::io::{self, ErrorKind, Write};
 
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
-use crate::structures::trie::Trie;
 use crate::structures::string;
+use crate::structures::trie::Trie;
 
 struct RawModeGuard;
 
@@ -74,9 +74,7 @@ impl Input {
                                 stdout.flush()?;
                                 return Ok(buffer);
                             }
-                            _ => {
-                                continue
-                            }
+                            _ => continue,
                         }
                     }
                     buffer.push(c);
@@ -96,8 +94,14 @@ impl Input {
                     // argument, but it works for now
                     let mut suggestions: Vec<String>;
                     let mut partial: &str = &buffer;
-                    if buffer.split_whitespace().count() > 1 {
-                        let last_token = buffer.split_whitespace().last().unwrap_or("");
+                    let cnt_ws = buffer.split_whitespace().count();
+                    let partial_word = cnt_ws > 1;
+                    let not_type = buffer.ends_with(' ') && !buffer.is_empty();
+                    if partial_word || not_type {
+                        let mut last_token = buffer.split_whitespace().last().unwrap_or("");
+                        if not_type {
+                            last_token = "";
+                        }
                         suggestions = ctx.filesystem_pref.autocomplete(last_token);
                         partial = last_token;
                     } else {
@@ -117,7 +121,7 @@ impl Input {
                         if !suggestions[0].ends_with('/') {
                             print!(" ");
                             buffer.push(' ');
-                        }  
+                        }
                         stdout.flush()?;
                         continue;
                     }

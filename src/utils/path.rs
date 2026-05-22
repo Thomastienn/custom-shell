@@ -11,7 +11,7 @@ impl PathUtils {
         file_path.exists() && file_path.metadata().unwrap().permissions().mode() & 0o111 != 0
     }
 
-    pub fn all_files() -> Vec<PathBuf> {
+    pub fn _all_files() -> Vec<PathBuf> {
         let mut files = Vec::new();
         if let Ok(entries) = fs::read_dir(".") {
             for entry in entries.flatten() {
@@ -27,7 +27,9 @@ impl PathUtils {
 
     pub fn all_entries_rec(dir: &Path) -> Vec<PathBuf> {
         let mut entries = Vec::new();
-        entries.push(dir.to_path_buf());
+        if dir.to_str() != Some(".") {
+            entries.push(dir.to_path_buf());
+        }
         if let Ok(dir_entries) = fs::read_dir(dir) {
             for entry in dir_entries.flatten() {
                 let path = entry.path();

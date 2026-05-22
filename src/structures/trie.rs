@@ -90,11 +90,11 @@ impl Trie {
 
             node = next_node;
         }
+        let single_path = self.single_path(node);
+        if let Some(full_str) = single_path {
+            return vec![format!("{}{}", prefix, full_str)];
+        }
         if node.is_word {
-            let single_path = self.single_path(node);
-            if let Some(full_str) = single_path {
-                return vec![format!("{}{}", prefix, full_str)];
-            }
             return Vec::new();
         }
         let mut results = Vec::new();

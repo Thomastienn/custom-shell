@@ -1,4 +1,4 @@
-use crate::{input::InputCtx, utils::path::PathUtils};
+use crate::{input::InputCtx, runnable::cd::Cd };
 use input::Input;
 use parser::parse;
 use runnable::CommandContext;
@@ -14,6 +14,7 @@ mod structures;
 mod tokenizer;
 mod utils;
 
+
 fn main() {
     let commands = runnable::get_commands();
     let mut cmd_trie = Trie::new();
@@ -21,19 +22,7 @@ fn main() {
         cmd_trie.insert(cmd);
     }
     let mut filesystem_trie = Trie::new();
-    for entry in PathUtils::all_entries_rec_here() {
-        // dbg!(PathUtils::get_relative_path(&entry.canonicalize().ok().unwrap()).unwrap());
-        let is_dir = entry.is_dir();
-
-        let full_path = entry.canonicalize().ok().unwrap();
-        let mut rel = PathUtils::get_relative_path(&full_path).unwrap();
-
-        if is_dir {
-            rel.push('/');
-        }
-
-        filesystem_trie.insert(&rel);
-    }
+    Cd::build_filesystem_trie(&mut filesystem_trie);
 
     loop {
         let input_ctx = InputCtx {
