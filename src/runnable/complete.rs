@@ -8,7 +8,7 @@ use crate::utils::output;
 pub struct Complete;
 
 impl Complete {
-    fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
+    pub fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
         let cmd_trie = trie.entry(name_exe.to_string()).or_insert_with(Trie::new);
         let output = Command::new(path).output();
         match output {
@@ -24,8 +24,7 @@ impl Complete {
             }
             Err(e) => {
                 eprintln!("Error: Failed to execute completion command at path {}: {}", path.display(), e);
-            }
-        }
+            } }
     }
 }
 
@@ -67,7 +66,7 @@ impl Runnable for Complete {
                     }
                     let name_exe = &args[i + 2];
                     let path_buf = PathBuf::from(flag_arg);
-                    Complete::add_completion_spec(completions_trie, name_exe, &path_buf);
+                    // Complete::add_completion_spec(completions_trie, name_exe, &path_buf);
                     completions_path.insert(name_exe.clone(), path_buf);
                 }
                 _ => {}

@@ -5,6 +5,7 @@ use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
 use crate::parser::{self, ParsedCommand};
+use crate::runnable::complete::Complete;
 use crate::runnable::{CommandMap, CompletionPath};
 use crate::structures::string;
 use crate::structures::trie::{CompletionTrie, Trie};
@@ -30,7 +31,7 @@ pub struct InputCtx<'a> {
     pub completions_path: &'a CompletionPath,
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
-    pub completions_pref: &'a CompletionTrie,
+    pub completions_pref: &'a mut CompletionTrie,
 }
 
 pub enum SuggestionType {
@@ -117,7 +118,8 @@ impl Input {
                     let cmd_parsed = parsed_cmd.command.as_str();
                     let mut autocomplete: Option<SuggestionType> = None;
 
-                    if let Some(_) = ctx.completions_path.get(cmd_parsed) {
+                    if let Some(path) = ctx.completions_path.get(cmd_parsed) {
+                        Complete::add_completion_spec(ctx.completions_pref, cmd_parsed, path);
                         autocomplete = Some(SuggestionType::Complete);
                     }
                     autocomplete.get_or_insert_with(|| {

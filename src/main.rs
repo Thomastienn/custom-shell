@@ -31,7 +31,7 @@ fn main() {
             completions_path: &completions_path,
             cmd_pref: &cmd_trie,
             filesystem_pref: &filesystem_trie,
-            completions_pref: &completions_trie,
+            completions_pref: &mut completions_trie,
         };
         let input_res = Input::read_line("$ ", input_ctx);
         match input_res {
