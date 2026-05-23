@@ -14,11 +14,12 @@ use crate::utils::path::PathUtils;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-type CommandMap = HashMap<String, Box<dyn Runnable>>;
+pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
+pub type CompletionPath = HashMap<String, PathBuf>;
 
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
-    pub completions_path: &'a mut HashMap<String, PathBuf>,
+    pub completions_path: &'a mut CompletionPath,
     pub parsed_command: &'a ParsedCommand,
     pub file_trie: &'a mut Trie,
     pub completions_trie: &'a mut CompletionTrie

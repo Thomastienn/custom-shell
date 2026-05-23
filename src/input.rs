@@ -5,8 +5,9 @@ use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
 use crate::parser::{self, ParsedCommand};
+use crate::runnable::{CommandMap, CompletionPath};
 use crate::structures::string;
-use crate::structures::trie::Trie;
+use crate::structures::trie::{CompletionTrie, Trie};
 use crate::tokenizer::Tokenizer;
 
 struct RawModeGuard;
@@ -25,8 +26,17 @@ impl Drop for RawModeGuard {
 }
 
 pub struct InputCtx<'a> {
+    pub _commands: &'a CommandMap,
+    pub completions_path: &'a CompletionPath,
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
+    pub completions_pref: &'a CompletionTrie,
+}
+
+pub enum SuggestionType {
+    Complete,
+    Command,
+    File,
 }
 
 pub struct Input;
@@ -103,19 +113,37 @@ impl Input {
 
                 KeyCode::Tab => {
                     let mut suggestions: Vec<String>;
-                    let mut partial: &str = &buffer;
-                    let partial_word = parsed_cmd.args.len() >= 1;
-                    let not_type = buffer.ends_with(" ");
-                    if partial_word || not_type {
-                        let mut last_token = buffer.split_whitespace().last().unwrap_or("");
-                        if not_type {
-                            last_token = "";
-                        }
-                        suggestions = ctx.filesystem_pref.autocomplete(last_token);
-                        partial = last_token;
-                    } else {
-                        suggestions = ctx.cmd_pref.autocomplete(&buffer);
+                    let partial: &str;
+                    let cmd_parsed = parsed_cmd.command.as_str();
+                    let mut autocomplete: Option<SuggestionType> = None;
+
+                    if let Some(_) = ctx.completions_path.get(cmd_parsed) {
+                        autocomplete = Some(SuggestionType::Complete);
                     }
+                    autocomplete.get_or_insert_with(|| {
+                         if cmd_parsed != "" && !buffer.ends_with(' ') {
+                            SuggestionType::Command
+                        } else {
+                            SuggestionType::File
+                        }
+                    });
+
+                    let mut last_token = buffer.split_whitespace().last().unwrap_or("");
+                    if buffer.ends_with(' ') {
+                        last_token = "";
+                    }
+                    match autocomplete.unwrap() {
+                        SuggestionType::Complete => {
+                            suggestions = ctx.completions_pref.get(cmd_parsed).unwrap().autocomplete(last_token);
+                        }
+                        SuggestionType::Command => {
+                            suggestions = ctx.cmd_pref.autocomplete(last_token);
+                        }
+                        SuggestionType::File => {
+                            suggestions = ctx.filesystem_pref.autocomplete(&buffer);
+                        }
+                    }
+                    partial = last_token;
                     // dbg!(&suggestions);
 
                     if suggestions.is_empty() {
