@@ -8,7 +8,7 @@ pub mod complete;
 
 use crate::parser::ParsedCommand;
 use crate::utils::output;
-use crate::structures::trie::{CompletionTrie, Trie};
+use crate::structures::trie::{Trie};
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
 use std::collections::HashMap;
@@ -22,7 +22,6 @@ pub struct CommandContext<'a> {
     pub completions_path: &'a mut CompletionPath,
     pub parsed_command: &'a ParsedCommand,
     pub file_trie: &'a mut Trie,
-    pub completions_trie: &'a mut CompletionTrie
 }
 
 pub trait Runnable {

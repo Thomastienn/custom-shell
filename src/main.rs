@@ -1,4 +1,4 @@
-use crate::{input::InputCtx, runnable::cd::Cd, structures::trie::CompletionTrie };
+use crate::{input::InputCtx, runnable::cd::Cd,};
 use input::Input;
 use runnable::CommandContext;
 use std::collections::HashMap;
@@ -23,7 +23,6 @@ fn main() {
     Cd::build_filesystem_trie(&mut filesystem_trie);
 
     let mut completions_path = HashMap::new();
-    let mut completions_trie: CompletionTrie = HashMap::new();
 
     loop {
         let input_ctx = InputCtx {
@@ -31,7 +30,6 @@ fn main() {
             completions_path: &completions_path,
             cmd_pref: &cmd_trie,
             filesystem_pref: &filesystem_trie,
-            completions_pref: &mut completions_trie,
         };
         let input_res = Input::read_line("$ ", input_ctx);
         match input_res {
@@ -40,7 +38,6 @@ fn main() {
                 let ctx = CommandContext {
                     commands: &commands,
                     completions_path: &mut completions_path,
-                    completions_trie: &mut completions_trie,
                     parsed_command: &parsed_command,
                     file_trie: &mut filesystem_trie,
                 };

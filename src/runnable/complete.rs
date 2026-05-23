@@ -1,9 +1,7 @@
-use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
 use crate::runnable::{CommandContext, Runnable};
-use crate::structures::trie::{CompletionTrie, Trie};
 use crate::utils::output;
 
 pub struct Complete;
@@ -30,7 +28,7 @@ impl Complete {
         match output {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                return vec![stdout.trim().to_string()];
+                stdout.lines().map(|line| line.to_string()).collect()
             }
             Err(e) => {
                 eprintln!(
@@ -39,30 +37,6 @@ impl Complete {
                     e
                 );
                 vec![]
-            }
-        }
-    }
-
-    pub fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
-        let cmd_trie = trie.entry(name_exe.to_string()).or_insert_with(Trie::new);
-        let output = Command::new(path).output();
-        match output {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                for line in stdout.lines() {
-                    let line = line.trim();
-                    if line.is_empty() {
-                        continue;
-                    }
-                    cmd_trie.insert(line);
-                }
-            }
-            Err(e) => {
-                eprintln!(
-                    "Error: Failed to execute completion command at path {}: {}",
-                    path.display(),
-                    e
-                );
             }
         }
     }
@@ -77,7 +51,6 @@ impl Runnable for Complete {
         let stdout = &ctx.parsed_command.stdout;
         let stderr = &ctx.parsed_command.stderr;
         let completions_path = ctx.completions_path;
-        let _completions_trie = ctx.completions_trie;
 
         for (i, arg) in args.iter().enumerate() {
             if !arg.starts_with("-") {

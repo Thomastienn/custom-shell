@@ -116,5 +116,3 @@ impl Trie {
         }
     }
 }
-
-pub type CompletionTrie = HashMap<String, Trie>;

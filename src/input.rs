@@ -9,7 +9,7 @@ use crate::parser::{self, ParsedCommand};
 use crate::runnable::complete::Complete;
 use crate::runnable::{CommandMap, CompletionPath};
 use crate::structures::string;
-use crate::structures::trie::{CompletionTrie, Trie};
+use crate::structures::trie::{Trie};
 use crate::tokenizer::Tokenizer;
 
 struct RawModeGuard;
@@ -32,7 +32,6 @@ pub struct InputCtx<'a> {
     pub completions_path: &'a CompletionPath,
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
-    pub completions_pref: &'a mut CompletionTrie,
 }
 
 type PrevArg = String;
@@ -41,8 +40,7 @@ type PathComplete = String;
 
 #[derive(Debug)]
 pub enum SuggestionType {
-    Complete,
-    CompleteArgs(PrevArg, CurrentArg, PathComplete),
+    Complete(PrevArg, CurrentArg, PathComplete),
     Command,
     Filesystem,
 }
@@ -130,16 +128,17 @@ impl Input {
                     let mut autocomplete: Option<SuggestionType> = None;
 
                     if let Some(path) = ctx.completions_path.get(cmd_parsed) {
+                        let mut cur_arg = String::new();
+                        let mut prev = cmd_parsed.to_string();
                         if cmd_args.len() >= 2 {
-                            let prev = cmd_args[cmd_args.len() - 2].clone();
-                            let current_arg = cmd_args.last().unwrap().clone();
-                            let path_str = path.to_str().unwrap().to_string();
-                            autocomplete =
-                                Some(SuggestionType::CompleteArgs(prev, current_arg, path_str));
-                        } else {
-                            Complete::add_completion_spec(ctx.completions_pref, cmd_parsed, path);
-                            autocomplete = Some(SuggestionType::Complete);
+                            prev = cmd_args[cmd_args.len() - 2].clone();
                         }
+                        if cmd_args.len() >= 1 {
+                            cur_arg = cmd_args.last().unwrap().clone();
+                        }
+                        let path_str = path.to_str().unwrap().to_string();
+                        autocomplete =
+                            Some(SuggestionType::Complete(prev, cur_arg, path_str));
                     }
 
                     let partial_word = cmd_args.len() >= 1;
@@ -158,14 +157,7 @@ impl Input {
                     }
                     // dbg!(&autocomplete);
                     match autocomplete.unwrap() {
-                        SuggestionType::Complete => {
-                            suggestions = ctx
-                                .completions_pref
-                                .get(cmd_parsed)
-                                .unwrap()
-                                .autocomplete(last_token);
-                        }
-                        SuggestionType::CompleteArgs(prev, partial_arg, path) => {
+                        SuggestionType::Complete(prev, partial_arg, path) => {
                             suggestions = Complete::get_completion_spec(
                                 cmd_parsed,
                                 partial_arg.as_str(),
