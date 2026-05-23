@@ -1,16 +1,18 @@
 use std::path::PathBuf;
+use std::process::Command;
 
 use crate::runnable::{CommandContext, Runnable};
 use crate::structures::trie::{CompletionTrie, Trie};
 use crate::utils::output;
-use crate::utils::path::PathUtils;
 
 pub struct Complete;
 
 impl Complete {
     fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
         let cmd_trie = trie.entry(name_exe.to_string()).or_insert_with(Trie::new);
-        for line in PathUtils::all_lines(path).unwrap() {
+        let output = Command::new(path).output().ok().unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
             let line = line.trim();
             if line.is_empty() {
                 continue;
