@@ -38,7 +38,7 @@ pub struct InputCtx<'a> {
 pub enum SuggestionType {
     Complete,
     Command,
-    File,
+    Filesystem,
 }
 
 pub struct Input;
@@ -123,19 +123,23 @@ impl Input {
                         Complete::add_completion_spec(ctx.completions_pref, cmd_parsed, path);
                         autocomplete = Some(SuggestionType::Complete);
                     }
+
+                    let cnt_ws = buffer.split_whitespace().count();
+                    let partial_word = cnt_ws > 1;
+                    let not_type = buffer.ends_with(' ');
                     autocomplete.get_or_insert_with(|| {
-                         if parsed_cmd.args.is_empty() && !buffer.ends_with(' ') {
-                            SuggestionType::Command
+                        if partial_word || not_type {
+                            SuggestionType::Filesystem
                         } else {
-                            SuggestionType::File
+                            SuggestionType::Command
                         }
                     });
 
                     let mut last_token = buffer.split_whitespace().last().unwrap_or("");
-                    if buffer.ends_with(' ') {
+                    if not_type {
                         last_token = "";
                     }
-                    // dbg!(&autocomplete);
+                    dbg!(&autocomplete);
                     match autocomplete.unwrap() {
                         SuggestionType::Complete => {
                             suggestions = ctx.completions_pref.get(cmd_parsed).unwrap().autocomplete(last_token);
@@ -143,7 +147,7 @@ impl Input {
                         SuggestionType::Command => {
                             suggestions = ctx.cmd_pref.autocomplete(last_token);
                         }
-                        SuggestionType::File => {
+                        SuggestionType::Filesystem => {
                             suggestions = ctx.filesystem_pref.autocomplete(&buffer);
                         }
                     }
