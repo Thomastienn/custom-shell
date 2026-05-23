@@ -49,7 +49,7 @@ impl Jobs {
         let pid = child_process.id();
         let job_info = JobInfo {
             job_id: cnt_bg,
-            command: format!("{} {} &", cmd, args.join(" ")),
+            command: format!("{} {}", cmd, args.join(" ")),
             child: child_process,
         };
         job_list.push(job_info);
@@ -64,33 +64,37 @@ impl Runnable for Jobs {
     }
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
-        for job in ctx.job_list.iter_mut() {
+        let mut err_code = 0;
+        ctx.job_list.retain_mut(|job| {
             let latest = match ctx.cnt_bg {
                 id if id == job.job_id => "+",
                 id if id - 1 == job.job_id => "-",
                 _ => "",
             };
-            
+
             let status = match job.child.try_wait() {
                 Ok(Some(_)) => "Done",
                 Ok(None) => "Running",
                 Err(_) => "Error",
             };
-            
-            let content = format!("[{}]{}  {:<24}{}", job.job_id, latest, status, job.command);
-            output::write(content.as_str(), &ctx.parsed_command.stdout);
 
-        }
-
-        // Keep running tasks
-        ctx.job_list.retain_mut(|job| {
-            match job.child.try_wait() {
-                Ok(Some(_)) => false,
-                Ok(None) => true,
-                Err(_) => false,
+            let trailing_background = if status == "Running" { " &" } else { "" };
+            let content = format!(
+                "[{}]{}  {:<24}{}{}",
+                job.job_id, latest, status, job.command, trailing_background
+            );
+            let output_code = output::write(content.as_str(), &ctx.parsed_command.stdout);
+            if output_code != 0 {
+                eprintln!(
+                    "Error outputting job status for job {}: {}",
+                    job.job_id, content
+                );
+                err_code = output_code;
             }
+
+            status == "Running"
         });
 
-        0
+        err_code
     }
 }
