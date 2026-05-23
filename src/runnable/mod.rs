@@ -12,11 +12,13 @@ use crate::structures::trie::Trie;
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 type CommandMap = HashMap<String, Box<dyn Runnable>>;
 
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
+    pub completions_path: &'a mut HashMap<String, PathBuf>,
     pub parsed_command: &'a ParsedCommand,
     pub file_trie: &'a mut Trie,
 }
@@ -56,7 +58,7 @@ pub fn get_commands() -> CommandMap {
         Box::new(exit::Exit) as Box<dyn Runnable>,
         Box::new(pwd::Pwd) as Box<dyn Runnable>,
         Box::new(r#type::Type) as Box<dyn Runnable>,
-        Box::new(complete::Complete::new()) as Box<dyn Runnable>,
+        Box::new(complete::Complete) as Box<dyn Runnable>,
     ];
     for cmd in builtin_cmds {
         cmds.insert(cmd.name(), cmd);

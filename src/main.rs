@@ -2,6 +2,7 @@ use crate::{input::InputCtx, runnable::cd::Cd };
 use input::Input;
 use parser::parse;
 use runnable::CommandContext;
+use std::collections::HashMap;
 #[allow(unused_imports)]
 use std::io::{self, ErrorKind, Write};
 use structures::trie::Trie;
@@ -23,6 +24,8 @@ fn main() {
     }
     let mut filesystem_trie = Trie::new();
     Cd::build_filesystem_trie(&mut filesystem_trie);
+
+    let mut completions_path = HashMap::new();
 
     loop {
         let input_ctx = InputCtx {
@@ -50,6 +53,7 @@ fn main() {
                 // dbg!("Parsed command: {:?}", &parsed_command);
                 let ctx = CommandContext {
                     commands: &commands,
+                    completions_path: &mut completions_path,
                     parsed_command: &parsed_command,
                     file_trie: &mut filesystem_trie,
                 };
