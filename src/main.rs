@@ -24,6 +24,7 @@ fn main() {
 
     let mut completions_path = HashMap::new();
     let mut cnt_bg = 0;
+    let mut job_list = Vec::new();
 
     loop {
         let input_ctx = InputCtx {
@@ -43,6 +44,7 @@ fn main() {
                     parsed_command: &parsed_command,
                     file_trie: &mut filesystem_trie,
                     cnt_bg: cnt_bg,
+                    job_list: &mut job_list,
                 };
                 runnable::dispatch(ctx);
             }

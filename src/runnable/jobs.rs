@@ -3,6 +3,18 @@ use std::process::Command;
 use crate::runnable::{CommandContext, Runnable};
 use crate::utils::output;
 
+pub enum JobStatus {
+    Running,
+    Stopped,
+    Done,
+}
+
+pub struct JobInfo {
+    pub job_id: usize,
+    pub status: JobStatus,
+    pub command: String,
+}
+
 pub struct Jobs;
 
 impl Jobs {
@@ -10,6 +22,7 @@ impl Jobs {
         let cmd = &ctx.parsed_command.command;
         let p_out = &ctx.parsed_command.stdout;
         let p_err = &ctx.parsed_command.stderr;
+        let job_list = ctx.job_list;
 
         let stdout = match output::output_to_stdio(p_out) {
             Ok(stdout) => stdout,
@@ -38,10 +51,15 @@ impl Jobs {
             return 1;
         }
         let cnt_bg = ctx.cnt_bg;
-        return output::write(
-            format!("[{}] {}", cnt_bg, child.unwrap().id()).as_str(),
-            p_out,
-        );
+        let pid = child.unwrap().id();
+        let job_info = JobInfo {
+            job_id: cnt_bg,
+            status: JobStatus::Running,
+            command: format!("{} {} &", cmd, args.join(" ")),
+        };
+        job_list.push(job_info);
+
+        return output::write(format!("[{}] {}", cnt_bg, pid).as_str(), p_out);
     }
 }
 
@@ -50,7 +68,22 @@ impl Runnable for Jobs {
         "jobs".to_string()
     }
 
-    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
+    fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
+        for job in ctx.job_list.iter() {
+            let latest = if ctx.cnt_bg == job.job_id {
+                "+"
+            } else {
+                ""
+            };
+            let status = match job.status {
+                JobStatus::Running => "Running",
+                JobStatus::Stopped => "Stopped",
+                JobStatus::Done => "Done",
+            };
+            let content = format!("[{}]{}  {:<24}{}", job.job_id, latest, status, job.command);
+            output::write(content.as_str(), &ctx.parsed_command.stdout);
+        }
+
         0
     }
 }

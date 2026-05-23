@@ -8,6 +8,7 @@ pub mod complete;
 pub mod jobs;
 
 use crate::parser::ParsedCommand;
+use crate::runnable::jobs::JobInfo;
 use crate::utils::output;
 use crate::structures::trie::{Trie};
 use crate::runnable::external::ExternalCommand;
@@ -17,12 +18,14 @@ use std::path::PathBuf;
 
 pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
 pub type CompletionPath = HashMap<String, PathBuf>;
+pub type JobList = Vec<JobInfo>;
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
     pub completions_path: &'a mut CompletionPath,
     pub parsed_command: &'a ParsedCommand,
     pub file_trie: &'a mut Trie,
     pub cnt_bg: usize,
+    pub job_list: &'a mut JobList,
 }
 
 pub trait Runnable {
