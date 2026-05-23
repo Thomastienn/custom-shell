@@ -34,6 +34,7 @@ pub struct InputCtx<'a> {
     pub completions_pref: &'a mut CompletionTrie,
 }
 
+#[derive(Debug)]
 pub enum SuggestionType {
     Complete,
     Command,
@@ -123,7 +124,7 @@ impl Input {
                         autocomplete = Some(SuggestionType::Complete);
                     }
                     autocomplete.get_or_insert_with(|| {
-                         if cmd_parsed != "" && !buffer.ends_with(' ') {
+                         if parsed_cmd.args.is_empty() && !buffer.ends_with(' ') {
                             SuggestionType::Command
                         } else {
                             SuggestionType::File
@@ -134,6 +135,7 @@ impl Input {
                     if buffer.ends_with(' ') {
                         last_token = "";
                     }
+                    dbg!(&autocomplete);
                     match autocomplete.unwrap() {
                         SuggestionType::Complete => {
                             suggestions = ctx.completions_pref.get(cmd_parsed).unwrap().autocomplete(last_token);

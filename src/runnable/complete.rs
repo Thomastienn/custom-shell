@@ -37,7 +37,7 @@ impl Runnable for Complete {
         let stdout = &ctx.parsed_command.stdout;
         let stderr = &ctx.parsed_command.stderr;
         let completions_path = ctx.completions_path;
-        let completions_trie = ctx.completions_trie;
+        let _completions_trie = ctx.completions_trie;
 
         for (i, arg) in args.iter().enumerate() {
             if !arg.starts_with("-") {
