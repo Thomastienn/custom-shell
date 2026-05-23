@@ -33,7 +33,8 @@ impl Runnable for Complete {
                     }
 
                     let Some(path) = self.completions_path.get(&args[i + 1]) else {
-                        return output::error("no completion found for given command", stderr, 1);
+                        let err_msg = format!("complete: {}: no completion specification", args[i + 1]);
+                        return output::error(err_msg.as_str(), stderr, 1);
                     };
 
                     let content = format!("complete -C {} {}", path.display(), args[i + 1]);
