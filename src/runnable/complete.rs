@@ -82,6 +82,14 @@ impl Runnable for Complete {
                     // Complete::add_completion_spec(completions_trie, name_exe, &path_buf);
                     completions_path.insert(name_exe.clone(), path_buf);
                 }
+                "-r" => {
+                    if i + 1 >= args.len() {
+                        let err_msg = format!("complete: option {} requires an argument", arg);
+                        return output::error(err_msg.as_str(), stderr, 1);
+                    }
+                    let name_exe = &args[i + 1];
+                    completions_path.remove(name_exe);
+                }
                 _ => {}
             }
         }
