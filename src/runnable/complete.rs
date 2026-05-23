@@ -8,6 +8,21 @@ use crate::utils::output;
 pub struct Complete;
 
 impl Complete {
+    pub fn get_completion_spec(name_exe: &str, partial: &str, previous: &str, path: &PathBuf) -> Vec<String> {
+        let args = vec![name_exe.to_string(), partial.to_string(), previous.to_string()];
+        let output = Command::new(path).args(args).output();
+        match output {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                return vec![stdout.trim().to_string()];
+            }
+            Err(e) => {
+                eprintln!("Error: Failed to execute completion command at path {}: {}", path.display(), e);
+                vec![]
+            }
+        }
+    }
+
     pub fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
         let cmd_trie = trie.entry(name_exe.to_string()).or_insert_with(Trie::new);
         let output = Command::new(path).output();

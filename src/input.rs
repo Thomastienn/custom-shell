@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::io::{self, ErrorKind, Write};
+use std::path::PathBuf;
 
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
@@ -34,9 +35,14 @@ pub struct InputCtx<'a> {
     pub completions_pref: &'a mut CompletionTrie,
 }
 
+type PrevArg = String;
+type CurrentArg = String;
+type PathComplete = String;
+
 #[derive(Debug)]
 pub enum SuggestionType {
     Complete,
+    CompleteArgs(PrevArg, CurrentArg, PathComplete),
     Command,
     Filesystem,
 }
@@ -48,8 +54,7 @@ impl Input {
         let mut tokenizer = Tokenizer::new(buffer.to_string());
         let tokens = tokenizer.tokenize();
 
-        parser::parse(tokens, strict)
-            .map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))
+        parser::parse(tokens, strict).map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))
     }
 
     pub fn read_line(prompt: &str, ctx: InputCtx) -> Result<ParsedCommand, io::Error> {
@@ -117,15 +122,24 @@ impl Input {
                     let mut suggestions: Vec<String>;
                     let partial: &str;
                     let cmd_parsed = parsed_cmd.command.as_str();
+                    let cmd_args = &parsed_cmd.args;
+
                     let mut autocomplete: Option<SuggestionType> = None;
 
                     if let Some(path) = ctx.completions_path.get(cmd_parsed) {
-                        Complete::add_completion_spec(ctx.completions_pref, cmd_parsed, path);
-                        autocomplete = Some(SuggestionType::Complete);
+                        if cmd_args.len() >= 2 {
+                            let prev = cmd_args[cmd_args.len() - 2].clone();
+                            let current_arag = cmd_args.last().unwrap().clone();
+                            let path_str = path.to_str().unwrap().to_string();
+                            autocomplete =
+                                Some(SuggestionType::CompleteArgs(prev, current_arag, path_str));
+                        } else {
+                            Complete::add_completion_spec(ctx.completions_pref, cmd_parsed, path);
+                            autocomplete = Some(SuggestionType::Complete);
+                        }
                     }
 
-                    let cnt_ws = buffer.split_whitespace().count();
-                    let partial_word = cnt_ws > 1;
+                    let partial_word = cmd_args.len() >= 1;
                     let not_type = buffer.ends_with(' ');
                     autocomplete.get_or_insert_with(|| {
                         if partial_word || not_type {
@@ -142,7 +156,19 @@ impl Input {
                     // dbg!(&autocomplete);
                     match autocomplete.unwrap() {
                         SuggestionType::Complete => {
-                            suggestions = ctx.completions_pref.get(cmd_parsed).unwrap().autocomplete(last_token);
+                            suggestions = ctx
+                                .completions_pref
+                                .get(cmd_parsed)
+                                .unwrap()
+                                .autocomplete(last_token);
+                        }
+                        SuggestionType::CompleteArgs(prev, partial, path) => {
+                            suggestions = Complete::get_completion_spec(
+                                cmd_parsed,
+                                prev.as_str(),
+                                partial.as_str(),
+                                &PathBuf::from(path),
+                            );
                         }
                         SuggestionType::Command => {
                             suggestions = ctx.cmd_pref.autocomplete(last_token);
