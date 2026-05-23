@@ -52,7 +52,7 @@ impl Jobs {
             command: format!("{} {}", cmd, args.join(" ")),
             child: child_process,
         };
-        job_list.push(job_info);
+        job_list.push_back(job_info);
 
         return output::write(format!("[{}] {}", cnt_bg, pid).as_str(), p_out);
     }
@@ -64,8 +64,9 @@ impl Runnable for Jobs {
     }
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
-        let mut err_code = 0;
-        ctx.job_list.retain_mut(|job| {
+        let mut removed_idx = Vec::new();
+        for (i, job_node) in ctx.job_list.nodes.iter_mut().enumerate() {
+            let job = &mut job_node.value;
             let latest = match ctx.cnt_bg {
                 id if id == job.job_id => "+",
                 id if id - 1 == job.job_id => "-",
@@ -83,18 +84,20 @@ impl Runnable for Jobs {
                 "[{}]{}  {:<24}{}{}",
                 job.job_id, latest, status, job.command, trailing_background
             );
-            let output_code = output::write(content.as_str(), &ctx.parsed_command.stdout);
-            if output_code != 0 {
-                eprintln!(
-                    "Error outputting job status for job {}: {}",
-                    job.job_id, content
-                );
-                err_code = output_code;
+            let err_code = output::write(content.as_str(), &ctx.parsed_command.stdout);
+            if err_code != 0 {
+                return err_code;
             }
 
-            status == "Running"
-        });
+            if status != "Running" {
+                removed_idx.push(i);
+            }
+        }
 
-        err_code
+        for idx in removed_idx {
+            ctx.job_list.remove_idx(idx);
+        }
+
+        0
     }
 }

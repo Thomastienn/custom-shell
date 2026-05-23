@@ -9,6 +9,7 @@ pub mod jobs;
 
 use crate::parser::ParsedCommand;
 use crate::runnable::jobs::JobInfo;
+use crate::structures::dll::DoublyLinkedList;
 use crate::utils::output;
 use crate::structures::trie::{Trie};
 use crate::runnable::external::ExternalCommand;
@@ -18,7 +19,7 @@ use std::path::PathBuf;
 
 pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
 pub type CompletionPath = HashMap<String, PathBuf>;
-pub type JobList = Vec<JobInfo>;
+pub type JobList = DoublyLinkedList<JobInfo>;
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
     pub completions_path: &'a mut CompletionPath,

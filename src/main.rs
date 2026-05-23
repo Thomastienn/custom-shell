@@ -1,4 +1,4 @@
-use crate::{input::InputCtx, runnable::cd::Cd,};
+use crate::{input::InputCtx, runnable::cd::Cd, structures::dll::DoublyLinkedList,};
 use input::Input;
 use runnable::CommandContext;
 use std::collections::HashMap;
@@ -24,7 +24,7 @@ fn main() {
 
     let mut completions_path = HashMap::new();
     let mut cnt_bg = 0;
-    let mut job_list = Vec::new();
+    let mut job_list = DoublyLinkedList::new();
 
     loop {
         let input_ctx = InputCtx {
