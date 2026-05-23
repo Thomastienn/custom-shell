@@ -4,8 +4,10 @@ use std::io::{self, ErrorKind, Write};
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
+use crate::parser::{self, ParsedCommand};
 use crate::structures::string;
 use crate::structures::trie::Trie;
+use crate::tokenizer::Tokenizer;
 
 struct RawModeGuard;
 
@@ -30,7 +32,15 @@ pub struct InputCtx<'a> {
 pub struct Input;
 
 impl Input {
-    pub fn read_line(prompt: &str, ctx: InputCtx) -> io::Result<String> {
+    fn parse_buffer(buffer: &str, strict: bool) -> Result<ParsedCommand, io::Error> {
+        let mut tokenizer = Tokenizer::new(buffer.to_string());
+        let tokens = tokenizer.tokenize();
+
+        parser::parse(tokens, strict)
+            .map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))
+    }
+
+    pub fn read_line(prompt: &str, ctx: InputCtx) -> Result<ParsedCommand, io::Error> {
         let _raw_mode = RawModeGuard::new()?;
 
         let mut stdout = io::stdout();
@@ -60,6 +70,8 @@ impl Input {
             }
             key_presses.push_back(key.code);
 
+            let parsed_cmd = Self::parse_buffer(&buffer, false).unwrap();
+
             match key.code {
                 KeyCode::Char(c) => {
                     if ctrl {
@@ -72,7 +84,7 @@ impl Input {
                             'j' => {
                                 print!("\r\n");
                                 stdout.flush()?;
-                                return Ok(buffer);
+                                return Self::parse_buffer(&buffer, true);
                             }
                             _ => continue,
                         }
@@ -90,13 +102,10 @@ impl Input {
                 }
 
                 KeyCode::Tab => {
-                    // A broken way to see if the user is trying to autocomplete the command or the
-                    // argument, but it works for now
                     let mut suggestions: Vec<String>;
                     let mut partial: &str = &buffer;
-                    let cnt_ws = buffer.split_whitespace().count();
-                    let partial_word = cnt_ws > 1;
-                    let not_type = buffer.ends_with(' ') && !buffer.is_empty();
+                    let partial_word = parsed_cmd.args.len() >= 1;
+                    let not_type = buffer.ends_with(" ");
                     if partial_word || not_type {
                         let mut last_token = buffer.split_whitespace().last().unwrap_or("");
                         if not_type {
@@ -158,7 +167,7 @@ impl Input {
                 KeyCode::Enter => {
                     print!("\r\n");
                     stdout.flush()?;
-                    return Ok(buffer);
+                    return Self::parse_buffer(&buffer, true);
                 }
 
                 _ => {}

@@ -1,12 +1,10 @@
 use crate::{input::InputCtx, runnable::cd::Cd };
 use input::Input;
-use parser::parse;
 use runnable::CommandContext;
 use std::collections::HashMap;
 #[allow(unused_imports)]
 use std::io::{self, ErrorKind, Write};
 use structures::trie::Trie;
-use tokenizer::Tokenizer;
 
 mod input;
 mod parser;
@@ -32,23 +30,8 @@ fn main() {
             cmd_pref: &cmd_trie,
             filesystem_pref: &filesystem_trie,
         };
-        let input_str = match Input::read_line("$ ", input_ctx) {
-            Ok(line) => line,
-
-            Err(e) => {
-                eprintln!("input error: {e}");
-                break;
-            }
-        };
-
-        if input_str.trim().is_empty() {
-            continue;
-        }
-
-        let mut tokenizer = Tokenizer::new(input_str);
-        let tokens = tokenizer.tokenize();
-
-        match parse(tokens) {
+        let input_res = Input::read_line("$ ", input_ctx);
+        match input_res {
             Ok(parsed_command) => {
                 // dbg!("Parsed command: {:?}", &parsed_command);
                 let ctx = CommandContext {
@@ -58,6 +41,10 @@ fn main() {
                     file_trie: &mut filesystem_trie,
                 };
                 runnable::dispatch(ctx);
+            }
+            Err(e) if e.kind() == ErrorKind::Interrupted => {
+                println!();
+                break;
             }
             Err(e) => eprintln!("Error parsing command: {}", e),
         }

@@ -10,7 +10,7 @@ pub struct ParsedCommand {
     pub stderr: Output,
 }
 
-pub fn parse(tokens: Vec<Token>) -> Result<ParsedCommand, String> {
+pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> {
     let mut command: Option<String> = None;
     let mut args = Vec::new();
 
@@ -41,7 +41,7 @@ pub fn parse(tokens: Vec<Token>) -> Result<ParsedCommand, String> {
                         RedirectOp::Append => ">>",
                     }
                 );
-                let file = expect_file(&tokens, i, &op_str)?;
+                let file = expect_file(&tokens, i, &op_str, strict)?;
 
                 let output = match op {
                     RedirectOp::Write => Output::File(file),
@@ -52,7 +52,8 @@ pub fn parse(tokens: Vec<Token>) -> Result<ParsedCommand, String> {
                 match fd.unwrap_or(1) {
                     1 => stdout = output,
                     2 => stderr = output,
-                    n => return Err(format!("unsupported file descriptor: {}", n)),
+                    n if strict => return Err(format!("unsupported file descriptor: {}", n)),
+                    _ => ()
                 }
 
                 i += 2;
@@ -62,7 +63,8 @@ pub fn parse(tokens: Vec<Token>) -> Result<ParsedCommand, String> {
 
     let command = match command {
         Some(c) => c,
-        None => return Err("empty command".to_string()),
+        None if strict => return Err("empty command".to_string()),
+        _ => "".to_string(),
     };
 
     Ok(ParsedCommand {
@@ -73,10 +75,11 @@ pub fn parse(tokens: Vec<Token>) -> Result<ParsedCommand, String> {
     })
 }
 
-fn expect_file(tokens: &[Token], redirect_pos: usize, op: &str) -> Result<String, String> {
+fn expect_file(tokens: &[Token], redirect_pos: usize, op: &str, strict: bool) -> Result<String, String> {
     match tokens.get(redirect_pos + 1) {
         Some(Token::Word(file)) => Ok(file.clone()),
-        Some(_) => Err(format!("expected file after '{}'", op)),
-        None => Err(format!("expected file after '{}'", op)),
+        Some(_) if strict => Err(format!("expected file after '{}'", op)),
+        None if strict => Err(format!("expected file after '{}'", op)),
+        _ => Ok(format!("unknown_redirect_{}", redirect_pos))
     }
 }
