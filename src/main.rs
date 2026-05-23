@@ -1,4 +1,4 @@
-use crate::{input::InputCtx, runnable::cd::Cd };
+use crate::{input::InputCtx, runnable::cd::Cd, structures::trie::CompletionTrie };
 use input::Input;
 use runnable::CommandContext;
 use std::collections::HashMap;
@@ -13,7 +13,6 @@ mod structures;
 mod tokenizer;
 mod utils;
 
-
 fn main() {
     let commands = runnable::get_commands();
     let mut cmd_trie = Trie::new();
@@ -24,6 +23,7 @@ fn main() {
     Cd::build_filesystem_trie(&mut filesystem_trie);
 
     let mut completions_path = HashMap::new();
+    let mut completions_trie: CompletionTrie = HashMap::new();
 
     loop {
         let input_ctx = InputCtx {
@@ -37,6 +37,7 @@ fn main() {
                 let ctx = CommandContext {
                     commands: &commands,
                     completions_path: &mut completions_path,
+                    completions_trie: &mut completions_trie,
                     parsed_command: &parsed_command,
                     file_trie: &mut filesystem_trie,
                 };

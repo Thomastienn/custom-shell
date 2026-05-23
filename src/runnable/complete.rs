@@ -1,9 +1,18 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::runnable::{CommandContext, Runnable};
+use crate::structures::trie::{CompletionTrie, Trie};
 use crate::utils::output;
 
 pub struct Complete;
+
+impl Complete {
+    fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
+        let cmd_trie = trie.entry(name_exe.to_string()).or_insert_with(Trie::new);
+        cmd_trie.insert(path.to_str().unwrap());
+    }
+}
 
 impl Runnable for Complete {
     fn name(&self) -> String {
@@ -14,7 +23,8 @@ impl Runnable for Complete {
         let stdout = &ctx.parsed_command.stdout;
         let stderr = &ctx.parsed_command.stderr;
         let completions_path = ctx.completions_path;
-        
+        let completions_trie = ctx.completions_trie;
+
         for (i, arg) in args.iter().enumerate() {
             if !arg.starts_with("-") {
                 continue;
@@ -27,7 +37,8 @@ impl Runnable for Complete {
             match arg.as_str() {
                 "-p" => {
                     let Some(path) = completions_path.get(flag_arg) else {
-                        let err_msg = format!("complete: {}: no completion specification", flag_arg);
+                        let err_msg =
+                            format!("complete: {}: no completion specification", flag_arg);
                         return output::error(err_msg.as_str(), stderr, 1);
                     };
 
@@ -40,7 +51,9 @@ impl Runnable for Complete {
                         return output::error(err_msg.as_str(), stderr, 1);
                     }
                     let name_exe = &args[i + 2];
-                    completions_path.insert(name_exe.clone(), PathBuf::from(flag_arg));
+                    let path_buf = PathBuf::from(flag_arg);
+                    Complete::add_completion_spec(completions_trie, name_exe, &path_buf);
+                    completions_path.insert(name_exe.clone(), path_buf);
                 }
                 _ => {}
             }
