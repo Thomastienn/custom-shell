@@ -31,7 +31,7 @@ impl Runnable for Complete {
                         return output::error(err_msg.as_str(), stderr, 1);
                     };
 
-                    let content = format!("complete -C {} {}", path.display(), flag_arg);
+                    let content = format!("complete -C '{}' {}", path.display(), flag_arg);
                     return output::write(content.as_str(), stdout);
                 }
                 "-C" => {
