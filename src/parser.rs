@@ -8,6 +8,7 @@ pub struct ParsedCommand {
     pub args: Vec<String>,
     pub stdout: Output,
     pub stderr: Output,
+    pub background: bool,
 }
 
 pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> {
@@ -16,6 +17,8 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> 
 
     let mut stdout = Output::Stdout;
     let mut stderr = Output::Stderr;
+
+    let mut background = false;
 
     let mut i = 0;
 
@@ -32,6 +35,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> 
             }
             
             Token::Background => {
+                background = true;
                 i += 1;
             }
 
@@ -76,6 +80,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> 
         args,
         stdout,
         stderr,
+        background,
     })
 }
 

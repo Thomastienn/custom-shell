@@ -17,12 +17,12 @@ use std::path::PathBuf;
 
 pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
 pub type CompletionPath = HashMap<String, PathBuf>;
-
 pub struct CommandContext<'a> {
     pub commands: &'a CommandMap,
     pub completions_path: &'a mut CompletionPath,
     pub parsed_command: &'a ParsedCommand,
     pub file_trie: &'a mut Trie,
+    pub cnt_bg: usize,
 }
 
 pub trait Runnable {
@@ -81,6 +81,10 @@ pub fn dispatch(ctx: CommandContext) -> i32 {
     // just create the file
     let _ = output::output_to_stdio(stdout);
     let _ = output::output_to_stdio(stderr);
+
+    if ctx.parsed_command.background {
+        return jobs::Jobs.run_background(args, ctx);
+    }
 
     if let Some(cmd) = commands.get(command) {
         return cmd.run(args, ctx);
