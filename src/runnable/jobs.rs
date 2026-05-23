@@ -1,18 +1,12 @@
-use std::process::Command;
+use std::process::{Child, Command};
 
 use crate::runnable::{CommandContext, Runnable};
 use crate::utils::output;
 
-pub enum JobStatus {
-    Running,
-    Stopped,
-    Done,
-}
-
 pub struct JobInfo {
     pub job_id: usize,
-    pub status: JobStatus,
     pub command: String,
+    pub child: Child,
 }
 
 pub struct Jobs;
@@ -51,11 +45,12 @@ impl Jobs {
             return 1;
         }
         let cnt_bg = ctx.cnt_bg;
-        let pid = child.unwrap().id();
+        let child_process = child.unwrap();
+        let pid = child_process.id();
         let job_info = JobInfo {
             job_id: cnt_bg,
-            status: JobStatus::Running,
             command: format!("{} {} &", cmd, args.join(" ")),
+            child: child_process,
         };
         job_list.push(job_info);
 
@@ -69,20 +64,32 @@ impl Runnable for Jobs {
     }
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
-        for job in ctx.job_list.iter() {
+        for job in ctx.job_list.iter_mut() {
             let latest = match ctx.cnt_bg {
                 id if id == job.job_id => "+",
                 id if id - 1 == job.job_id => "-",
                 _ => "",
             };
-            let status = match job.status {
-                JobStatus::Running => "Running",
-                JobStatus::Stopped => "Stopped",
-                JobStatus::Done => "Done",
+            
+            let status = match job.child.try_wait() {
+                Ok(Some(_)) => "Done",
+                Ok(None) => "Running",
+                Err(_) => "Error",
             };
+            
             let content = format!("[{}]{}  {:<24}{}", job.job_id, latest, status, job.command);
             output::write(content.as_str(), &ctx.parsed_command.stdout);
+
         }
+
+        // Keep running tasks
+        ctx.job_list.retain_mut(|job| {
+            match job.child.try_wait() {
+                Ok(Some(_)) => false,
+                Ok(None) => true,
+                Err(_) => false,
+            }
+        });
 
         0
     }
