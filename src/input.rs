@@ -135,7 +135,7 @@ impl Input {
                     if buffer.ends_with(' ') {
                         last_token = "";
                     }
-                    dbg!(&autocomplete);
+                    // dbg!(&autocomplete);
                     match autocomplete.unwrap() {
                         SuggestionType::Complete => {
                             suggestions = ctx.completions_pref.get(cmd_parsed).unwrap().autocomplete(last_token);
