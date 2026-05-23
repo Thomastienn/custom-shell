@@ -171,6 +171,8 @@ impl Input {
                                 partial_arg.as_str(),
                                 prev.as_str(),
                                 &PathBuf::from(path),
+                                buffer.as_str(),
+                                buffer.len()
                             );
                         }
                         SuggestionType::Command => {

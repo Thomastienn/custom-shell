@@ -1,3 +1,4 @@
+use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -8,16 +9,35 @@ use crate::utils::output;
 pub struct Complete;
 
 impl Complete {
-    pub fn get_completion_spec(name_exe: &str, partial: &str, previous: &str, path: &PathBuf) -> Vec<String> {
-        let args = vec![name_exe.to_string(), partial.to_string(), previous.to_string()];
-        let output = Command::new(path).args(args).output();
+    pub fn get_completion_spec(
+        name_exe: &str,
+        partial: &str,
+        previous: &str,
+        path: &PathBuf,
+        buffer: &str,
+        cursor_pos: usize,
+    ) -> Vec<String> {
+        let args = vec![
+            name_exe.to_string(),
+            partial.to_string(),
+            previous.to_string(),
+        ];
+        let output = Command::new(path)
+            .args(args)
+            .env("COMP_LINE", buffer)
+            .env("COMP_POINT", cursor_pos.to_string())
+            .output();
         match output {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 return vec![stdout.trim().to_string()];
             }
             Err(e) => {
-                eprintln!("Error: Failed to execute completion command at path {}: {}", path.display(), e);
+                eprintln!(
+                    "Error: Failed to execute completion command at path {}: {}",
+                    path.display(),
+                    e
+                );
                 vec![]
             }
         }
@@ -38,8 +58,13 @@ impl Complete {
                 }
             }
             Err(e) => {
-                eprintln!("Error: Failed to execute completion command at path {}: {}", path.display(), e);
-            } }
+                eprintln!(
+                    "Error: Failed to execute completion command at path {}: {}",
+                    path.display(),
+                    e
+                );
+            }
+        }
     }
 }
 
