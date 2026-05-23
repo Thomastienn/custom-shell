@@ -10,14 +10,21 @@ pub struct Complete;
 impl Complete {
     fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
         let cmd_trie = trie.entry(name_exe.to_string()).or_insert_with(Trie::new);
-        let output = Command::new(path).output().ok().unwrap();
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        for line in stdout.lines() {
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
+        let output = Command::new(path).output();
+        match output {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    let line = line.trim();
+                    if line.is_empty() {
+                        continue;
+                    }
+                    cmd_trie.insert(line);
+                }
             }
-            cmd_trie.insert(line);
+            Err(e) => {
+                eprintln!("Error: Failed to execute completion command at path {}: {}", path.display(), e);
+            }
         }
     }
 }
