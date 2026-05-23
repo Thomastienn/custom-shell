@@ -72,7 +72,7 @@ impl Runnable for Jobs {
         for job in ctx.job_list.iter() {
             let latest = match ctx.cnt_bg {
                 id if id == job.job_id => "+",
-                id if id == job.job_id - 1 => "-",
+                id if id - 1 == job.job_id => "-",
                 _ => "",
             };
             let status = match job.status {
