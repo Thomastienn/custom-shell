@@ -103,6 +103,9 @@ impl Input {
                                 stdout.flush()?;
                                 return Self::parse_buffer(&buffer, true);
                             }
+                            'z' => {
+                                dbg!(&parsed_cmd);
+                            }
                             _ => continue,
                         }
                     }
@@ -129,10 +132,10 @@ impl Input {
                     if let Some(path) = ctx.completions_path.get(cmd_parsed) {
                         if cmd_args.len() >= 2 {
                             let prev = cmd_args[cmd_args.len() - 2].clone();
-                            let current_arag = cmd_args.last().unwrap().clone();
+                            let current_arg = cmd_args.last().unwrap().clone();
                             let path_str = path.to_str().unwrap().to_string();
                             autocomplete =
-                                Some(SuggestionType::CompleteArgs(prev, current_arag, path_str));
+                                Some(SuggestionType::CompleteArgs(prev, current_arg, path_str));
                         } else {
                             Complete::add_completion_spec(ctx.completions_pref, cmd_parsed, path);
                             autocomplete = Some(SuggestionType::Complete);
@@ -162,11 +165,11 @@ impl Input {
                                 .unwrap()
                                 .autocomplete(last_token);
                         }
-                        SuggestionType::CompleteArgs(prev, partial, path) => {
+                        SuggestionType::CompleteArgs(prev, partial_arg, path) => {
                             suggestions = Complete::get_completion_spec(
                                 cmd_parsed,
+                                partial_arg.as_str(),
                                 prev.as_str(),
-                                partial.as_str(),
                                 &PathBuf::from(path),
                             );
                         }
