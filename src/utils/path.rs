@@ -76,4 +76,8 @@ impl PathUtils {
         let current_dir = env::current_dir().ok()?;
         full_path.strip_prefix(current_dir).ok().and_then(|p| p.to_str().map(|s| s.to_string()))
     }
+
+    pub fn all_lines(path: &PathBuf) -> Option<Vec<String>> {
+        fs::read_to_string(path).ok().map(|content| content.lines().map(|line| line.to_string()).collect())
+    }
 }

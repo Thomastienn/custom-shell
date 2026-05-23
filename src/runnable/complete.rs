@@ -3,13 +3,20 @@ use std::path::PathBuf;
 use crate::runnable::{CommandContext, Runnable};
 use crate::structures::trie::{CompletionTrie, Trie};
 use crate::utils::output;
+use crate::utils::path::PathUtils;
 
 pub struct Complete;
 
 impl Complete {
     fn add_completion_spec(trie: &mut CompletionTrie, name_exe: &str, path: &PathBuf) {
         let cmd_trie = trie.entry(name_exe.to_string()).or_insert_with(Trie::new);
-        cmd_trie.insert(path.to_str().unwrap());
+        for line in PathUtils::all_lines(path).unwrap() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            cmd_trie.insert(line);
+        }
     }
 }
 
