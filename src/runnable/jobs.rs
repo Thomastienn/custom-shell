@@ -65,19 +65,27 @@ impl Runnable for Jobs {
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
         let mut removed_idx = Vec::new();
+        let ll_jobs = ctx.job_list;
         for (i, job_node) in ctx.job_list.nodes.iter_mut().enumerate() {
             let job = &mut job_node.value;
-            let latest = match ctx.cnt_bg {
-                id if id == job.job_id => "+",
-                id if id - 1 == job.job_id => "-",
-                _ => "",
-            };
 
             let status = match job.child.try_wait() {
                 Ok(Some(_)) => "Done",
                 Ok(None) => "Running",
                 Err(_) => "Error",
             };
+
+            let mut latest = "";
+            if let Some(latest_idx) = ll_jobs.tail {
+                if latest_idx == i {
+                    latest = "+";
+                }
+                if let Some(second_latest_idx) = ll_jobs.nodes[latest_idx].prev {
+                    if second_latest_idx == i {
+                        latest = "-";
+                    }
+                }
+            }
 
             let trailing_background = if status == "Running" { " &" } else { "" };
             let content = format!(
