@@ -70,10 +70,10 @@ impl Runnable for Jobs {
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
         for job in ctx.job_list.iter() {
-            let latest = if ctx.cnt_bg == job.job_id {
-                "+"
-            } else {
-                ""
+            let latest = match ctx.cnt_bg {
+                id if id == job.job_id => "+",
+                id if id == job.job_id - 1 => "-",
+                _ => "",
             };
             let status = match job.status {
                 JobStatus::Running => "Running",
