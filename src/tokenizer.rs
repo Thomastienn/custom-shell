@@ -11,7 +11,8 @@ pub enum Token {
     Redirect {
         fd: Option<u8>,
         op: RedirectOp,
-    }
+    },
+    Background
 }
 
 pub struct Tokenizer {
@@ -136,6 +137,12 @@ impl Tokenizer {
             if quote.is_none() {
                 if c.is_whitespace() {
                     break;
+                }
+
+                // If it's background operator
+                if c == '&' {
+                    self.advance_char(c);
+                    return Some(Token::Background);
                 }
 
                 // If it's redirect

@@ -30,6 +30,10 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> 
 
                 i += 1;
             }
+            
+            Token::Background => {
+                i += 1;
+            }
 
             Token::Redirect { fd, op } => {
                 let op_str = format!(

@@ -5,6 +5,7 @@ pub mod external;
 pub mod pwd;
 pub mod r#type;
 pub mod complete;
+pub mod jobs;
 
 use crate::parser::ParsedCommand;
 use crate::utils::output;
@@ -60,6 +61,7 @@ pub fn get_commands() -> CommandMap {
         Box::new(pwd::Pwd) as Box<dyn Runnable>,
         Box::new(r#type::Type) as Box<dyn Runnable>,
         Box::new(complete::Complete) as Box<dyn Runnable>,
+        Box::new(jobs::Jobs) as Box<dyn Runnable>,
     ];
     for cmd in builtin_cmds {
         cmds.insert(cmd.name(), cmd);
