@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::runnable::{CommandContext, Runnable};
 use crate::utils::output;
 
@@ -38,7 +40,7 @@ impl Runnable for Complete {
                         return output::error(err_msg.as_str(), stderr, 1);
                     }
                     let name_exe = &args[i + 2];
-                    completions_path.insert(flag_arg.clone(), name_exe.clone().into());
+                    completions_path.insert(name_exe.clone(), PathBuf::from(flag_arg));
                 }
                 _ => {}
             }
