@@ -56,7 +56,7 @@ pub fn get_commands() -> CommandMap {
         Box::new(exit::Exit) as Box<dyn Runnable>,
         Box::new(pwd::Pwd) as Box<dyn Runnable>,
         Box::new(r#type::Type) as Box<dyn Runnable>,
-        Box::new(complete::Complete) as Box<dyn Runnable>,
+        Box::new(complete::Complete::new()) as Box<dyn Runnable>,
     ];
     for cmd in builtin_cmds {
         cmds.insert(cmd.name(), cmd);

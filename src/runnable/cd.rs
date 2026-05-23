@@ -50,13 +50,7 @@ impl Runnable for Cd {
             return 0;
         }
         let content_error = format!("cd: {}: No such file or directory", args[0]);
-        match output::write_to_output(stderr, content_error.as_str()) {
-            Ok(_) => return 1,
-            Err(e) => {
-                eprintln!("Error writing to error output: {}", e);
-                return 1;
-            }
-        }
+        return output::error(content_error.as_str(), stderr, 1);
     }
 }
 

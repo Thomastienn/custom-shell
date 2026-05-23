@@ -73,3 +73,23 @@ pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
         }
     }
 }
+
+pub fn write(message: &str, output: &Output) -> i32 {
+    match write_to_output(output, message) {
+        Ok(_) => return 0,
+        Err(e) => {
+            eprintln!("Error writing to output: {}", e);
+            return 1;
+        }
+    }
+}
+
+pub fn error(message: &str, output: &Output, error_code: i32) -> i32 {
+    match write_to_output(output, message) {
+        Ok(_) => return error_code,
+        Err(e) => {
+            eprintln!("Error writing to output: {}", e);
+            return 1;
+        }
+    }
+}

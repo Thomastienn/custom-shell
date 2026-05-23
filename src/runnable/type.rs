@@ -16,36 +16,18 @@ impl Runnable for Type {
         if let Some(cmd) = ctx.commands.get(command) {
             if cmd.is_builtin() {
                 let content = format!("{} is a shell builtin", command);
-                match output::write_to_output(stdout, content.as_str()) {
-                    Ok(_) => return 0,
-                    Err(e) => {
-                        eprintln!("Error writing to error output: {}", e);
-                        return 1;
-                    }
-                }
+                return output::write(content.as_str(), stdout);
             } else {
                 let Some(full_path) = cmd.full_path() else {
                     eprintln!("Error: Command {} does not have a full path", command);
                     return 1;
                 };
                 let content = format!("{} is {}", command, full_path);
-                match output::write_to_output(stdout, content.as_str()) {
-                    Ok(_) => return 0,
-                    Err(e) => {
-                        eprintln!("Error writing to error output: {}", e);
-                        return 1;
-                    }
-                }
+                return output::write(content.as_str(), stdout);
             }
         }
 
         let content = format!("{}: not found", command);
-        match output::write_to_output(stderr, content.as_str()) {
-            Ok(_) => return 127,
-            Err(e) => {
-                eprintln!("Error writing to error output: {}", e);
-                return 1;
-            }
-        }
+        return output::error(content.as_str(), stderr, 127);
     }
 }
