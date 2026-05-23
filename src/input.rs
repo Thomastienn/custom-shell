@@ -148,7 +148,7 @@ impl Input {
                             suggestions = ctx.cmd_pref.autocomplete(last_token);
                         }
                         SuggestionType::Filesystem => {
-                            suggestions = ctx.filesystem_pref.autocomplete(&buffer);
+                            suggestions = ctx.filesystem_pref.autocomplete(last_token);
                         }
                     }
                     partial = last_token;
