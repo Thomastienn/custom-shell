@@ -1,12 +1,21 @@
 use std::process::{Child, Command};
 
 use crate::runnable::{CommandContext, Runnable};
+use crate::structures::dll::HasId;
 use crate::utils::output;
 
 pub struct JobInfo {
     pub job_id: usize,
     pub command: String,
     pub child: Child,
+}
+
+impl HasId for JobInfo {
+    type Id = usize;
+
+    fn id(&self) -> Self::Id {
+        self.job_id
+    }
 }
 
 pub struct Jobs;
@@ -64,10 +73,23 @@ impl Runnable for Jobs {
     }
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
-        let mut removed_idx = Vec::new();
         let ll_jobs = ctx.job_list;
-        for (i, job_node) in ctx.job_list.nodes.iter_mut().enumerate() {
-            let job = &mut job_node.value;
+        let latest_job_id = ll_jobs.tail
+            .and_then(|idx| ll_jobs.get_node(&idx))
+            .map(|node| node.value.job_id);
+        let second_latest_job_id = ll_jobs
+            .tail
+            .and_then(|idx| ll_jobs.get_node(&idx))
+            .and_then(|node| node.prev)
+            .and_then(|prev_idx| ll_jobs.get_node(&prev_idx))
+            .map(|node| node.value.job_id);
+
+        let mut head = ll_jobs.head;
+
+        while let Some(idx) = head {
+            let cur_node = ll_jobs.get_node_mut(&idx).unwrap();
+            let next_idx = cur_node.next;
+            let job = &mut cur_node.value;
 
             let status = match job.child.try_wait() {
                 Ok(Some(_)) => "Done",
@@ -76,12 +98,12 @@ impl Runnable for Jobs {
             };
 
             let mut latest = "";
-            if let Some(latest_idx) = ll_jobs.tail {
-                if latest_idx == i {
+            if let Some(latest_job_id) = latest_job_id {
+                if latest_job_id == job.job_id {
                     latest = "+";
                 }
-                if let Some(second_latest_idx) = ll_jobs.nodes[latest_idx].prev {
-                    if second_latest_idx == i {
+                if let Some(second_latest_job_id) = second_latest_job_id {
+                    if second_latest_job_id == job.job_id {
                         latest = "-";
                     }
                 }
@@ -98,14 +120,11 @@ impl Runnable for Jobs {
             }
 
             if status != "Running" {
-                removed_idx.push(i);
+                ll_jobs.remove(&idx);
             }
-        }
 
-        for idx in removed_idx {
-            ctx.job_list.remove_idx(idx);
+            head = next_idx;
         }
-
         0
     }
 }
