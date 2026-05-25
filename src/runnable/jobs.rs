@@ -21,6 +21,14 @@ impl HasId for JobInfo {
 pub struct Jobs;
 
 impl Jobs {
+    // Too few to use heap
+    pub fn get_new_id(job_list: &JobList) -> usize {
+        let mut id = 1;
+        while job_list.get_node(&id).is_some() {
+            id += 1;
+        }
+        id
+    }
     pub fn run_background(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
         let cmd = &ctx.parsed_command.command;
         let p_out = &ctx.parsed_command.stdout;
@@ -53,17 +61,17 @@ impl Jobs {
             eprintln!("Error executing background command {}: {}", cmd, e);
             return 1;
         }
-        let cnt_bg = ctx.cnt_bg;
         let child_process = child.unwrap();
         let pid = child_process.id();
+        let job_id = Self::get_new_id(job_list);
         let job_info = JobInfo {
-            job_id: cnt_bg,
+            job_id: job_id,
             command: format!("{} {}", cmd, args.join(" ")),
             child: child_process,
         };
         job_list.push_back(job_info);
 
-        return output::write(format!("[{}] {}", cnt_bg, pid).as_str(), p_out);
+        return output::write(format!("[{}] {}", job_id, pid).as_str(), p_out);
     }
 
     pub fn get_latest_job_id(job_list: &JobList) -> Option<usize> {

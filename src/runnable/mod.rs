@@ -25,7 +25,6 @@ pub struct CommandContext<'a> {
     pub completions_path: &'a mut CompletionPath,
     pub parsed_command: &'a ParsedCommand,
     pub file_trie: &'a mut Trie,
-    pub cnt_bg: usize,
     pub job_list: &'a mut JobList,
 }
 

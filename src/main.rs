@@ -23,7 +23,6 @@ fn main() {
     Cd::build_filesystem_trie(&mut filesystem_trie);
 
     let mut completions_path = HashMap::new();
-    let mut cnt_bg = 0;
     let mut job_list = DoublyLinkedList::new();
 
     loop {
@@ -41,13 +40,11 @@ fn main() {
         match input_res {
             Ok(parsed_command) => {
                 // dbg!("Parsed command: {:?}", &parsed_command);
-                cnt_bg += if parsed_command.background { 1 } else { 0 };
                 let ctx = CommandContext {
                     commands: &commands,
                     completions_path: &mut completions_path,
                     parsed_command: &parsed_command,
                     file_trie: &mut filesystem_trie,
-                    cnt_bg: cnt_bg,
                     job_list: &mut job_list,
                 };
                 runnable::dispatch(ctx);
