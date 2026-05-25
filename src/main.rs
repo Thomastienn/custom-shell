@@ -1,4 +1,4 @@
-use crate::{input::InputCtx, runnable::cd::Cd, structures::dll::DoublyLinkedList,};
+use crate::{input::InputCtx, runnable::{cd::Cd, jobs::Jobs}, structures::dll::DoublyLinkedList,};
 use input::Input;
 use runnable::CommandContext;
 use std::collections::HashMap;
@@ -33,6 +33,10 @@ fn main() {
             cmd_pref: &cmd_trie,
             filesystem_pref: &filesystem_trie,
         };
+        let removed_jobs = Jobs::reap_jobs(&mut job_list);
+        for job_str in removed_jobs {
+            println!("{}", job_str);
+        }
         let input_res = Input::read_line("$ ", input_ctx);
         match input_res {
             Ok(parsed_command) => {

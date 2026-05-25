@@ -86,10 +86,8 @@ pub fn dispatch(ctx: CommandContext) -> i32 {
     let _ = output::output_to_stdio(stdout);
     let _ = output::output_to_stdio(stderr);
 
-    Jobs::reap_jobs(&jobs::Jobs, ctx.job_list);
-
     if ctx.parsed_command.background {
-        return jobs::Jobs.run_background(args, ctx);
+        return Jobs.run_background(args, ctx);
     }
 
     if let Some(cmd) = commands.get(command) {

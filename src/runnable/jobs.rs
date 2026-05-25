@@ -66,14 +66,14 @@ impl Jobs {
         return output::write(format!("[{}] {}", cnt_bg, pid).as_str(), p_out);
     }
 
-    pub fn get_latest_job_id(&self, job_list: &JobList) -> Option<usize> {
+    pub fn get_latest_job_id(job_list: &JobList) -> Option<usize> {
         job_list
             .tail
             .and_then(|idx| job_list.get_node(&idx))
             .map(|node| node.value.job_id)
     }
 
-    pub fn get_second_latest_job_id(&self, job_list: &JobList) -> Option<usize> {
+    pub fn get_second_latest_job_id(job_list: &JobList) -> Option<usize> {
         job_list
             .tail
             .and_then(|idx| job_list.get_node(&idx))
@@ -83,7 +83,6 @@ impl Jobs {
     }
 
     pub fn get_job_display(
-        &self,
         job: &mut JobInfo,
         latest_job_id: Option<usize>,
         second_latest_job_id: Option<usize>,
@@ -115,15 +114,23 @@ impl Jobs {
         content
     }
 
-    pub fn reap_jobs(&self, job_list: &mut JobList) {
+    pub fn reap_jobs(job_list: &mut JobList) -> Vec<String> {
+        let mut removed_contents = Vec::new();
+        let latest_job_id = Jobs::get_latest_job_id(job_list);
+        let second_latest_job_id = Jobs::get_second_latest_job_id(job_list);
+        
         for idx in job_list.ids() {
             let cur_node = job_list.get_node_mut(&idx).unwrap();
             let job = &mut cur_node.value;
 
             if let Ok(Some(_)) = job.child.try_wait() {
+                let content = Self::get_job_display(job, latest_job_id, second_latest_job_id);
+                removed_contents.push(content);
                 job_list.remove(&idx);
             }
         }
+
+        removed_contents
     }
 }
 
@@ -135,20 +142,21 @@ impl Runnable for Jobs {
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
         let ll_jobs = ctx.job_list;
 
-        let latest_job_id = Jobs::get_latest_job_id(self, ll_jobs);
-        let second_latest_job_id = Jobs::get_second_latest_job_id(self, ll_jobs);
+        let latest_job_id = Jobs::get_latest_job_id(ll_jobs);
+        let second_latest_job_id = Jobs::get_second_latest_job_id(ll_jobs);
 
         for idx in ll_jobs.ids() {
             let cur_node = ll_jobs.get_node_mut(&idx).unwrap();
             let job = &mut cur_node.value;
 
-            let content = Jobs::get_job_display(self, job, latest_job_id, second_latest_job_id);
+            let content = Jobs::get_job_display(job, latest_job_id, second_latest_job_id);
 
             let err_code = output::write(content.as_str(), &ctx.parsed_command.stdout);
             if err_code != 0 {
                 return err_code;
             }
         }
+        Self::reap_jobs(ll_jobs);
         0
     }
 }
