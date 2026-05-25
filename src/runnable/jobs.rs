@@ -1,6 +1,6 @@
 use std::process::{Child, Command};
 
-use crate::runnable::{CommandContext, Runnable};
+use crate::runnable::{CommandContext, JobList, Runnable};
 use crate::structures::dll::HasId;
 use crate::utils::output;
 
@@ -65,6 +65,66 @@ impl Jobs {
 
         return output::write(format!("[{}] {}", cnt_bg, pid).as_str(), p_out);
     }
+
+    pub fn get_latest_job_id(&self, job_list: &JobList) -> Option<usize> {
+        job_list
+            .tail
+            .and_then(|idx| job_list.get_node(&idx))
+            .map(|node| node.value.job_id)
+    }
+
+    pub fn get_second_latest_job_id(&self, job_list: &JobList) -> Option<usize> {
+        job_list
+            .tail
+            .and_then(|idx| job_list.get_node(&idx))
+            .and_then(|node| node.prev)
+            .and_then(|prev_idx| job_list.get_node(&prev_idx))
+            .map(|node| node.value.job_id)
+    }
+
+    pub fn get_job_display(
+        &self,
+        job: &mut JobInfo,
+        latest_job_id: Option<usize>,
+        second_latest_job_id: Option<usize>,
+    ) -> String {
+        let status = match job.child.try_wait() {
+            Ok(Some(_)) => "Done",
+            Ok(None) => "Running",
+            Err(_) => "Error",
+        };
+
+        let mut latest = "";
+        if let Some(latest_job_id) = latest_job_id {
+            if latest_job_id == job.job_id {
+                latest = "+";
+            }
+            if let Some(second_latest_job_id) = second_latest_job_id {
+                if second_latest_job_id == job.job_id {
+                    latest = "-";
+                }
+            }
+        }
+
+        let trailing_background = if status == "Running" { " &" } else { "" };
+        let content = format!(
+            "[{}]{}  {:<24}{}{}",
+            job.job_id, latest, status, job.command, trailing_background
+        );
+
+        content
+    }
+
+    pub fn reap_jobs(&self, job_list: &mut JobList) {
+        for idx in job_list.ids() {
+            let cur_node = job_list.get_node_mut(&idx).unwrap();
+            let job = &mut cur_node.value;
+
+            if let Ok(Some(_)) = job.child.try_wait() {
+                job_list.remove(&idx);
+            }
+        }
+    }
 }
 
 impl Runnable for Jobs {
@@ -74,56 +134,20 @@ impl Runnable for Jobs {
 
     fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
         let ll_jobs = ctx.job_list;
-        let latest_job_id = ll_jobs.tail
-            .and_then(|idx| ll_jobs.get_node(&idx))
-            .map(|node| node.value.job_id);
-        let second_latest_job_id = ll_jobs
-            .tail
-            .and_then(|idx| ll_jobs.get_node(&idx))
-            .and_then(|node| node.prev)
-            .and_then(|prev_idx| ll_jobs.get_node(&prev_idx))
-            .map(|node| node.value.job_id);
 
-        let mut head = ll_jobs.head;
+        let latest_job_id = Jobs::get_latest_job_id(self, ll_jobs);
+        let second_latest_job_id = Jobs::get_second_latest_job_id(self, ll_jobs);
 
-        while let Some(idx) = head {
+        for idx in ll_jobs.ids() {
             let cur_node = ll_jobs.get_node_mut(&idx).unwrap();
-            let next_idx = cur_node.next;
             let job = &mut cur_node.value;
 
-            let status = match job.child.try_wait() {
-                Ok(Some(_)) => "Done",
-                Ok(None) => "Running",
-                Err(_) => "Error",
-            };
+            let content = Jobs::get_job_display(self, job, latest_job_id, second_latest_job_id);
 
-            let mut latest = "";
-            if let Some(latest_job_id) = latest_job_id {
-                if latest_job_id == job.job_id {
-                    latest = "+";
-                }
-                if let Some(second_latest_job_id) = second_latest_job_id {
-                    if second_latest_job_id == job.job_id {
-                        latest = "-";
-                    }
-                }
-            }
-
-            let trailing_background = if status == "Running" { " &" } else { "" };
-            let content = format!(
-                "[{}]{}  {:<24}{}{}",
-                job.job_id, latest, status, job.command, trailing_background
-            );
             let err_code = output::write(content.as_str(), &ctx.parsed_command.stdout);
             if err_code != 0 {
                 return err_code;
             }
-
-            if status != "Running" {
-                ll_jobs.remove(&idx);
-            }
-
-            head = next_idx;
         }
         0
     }

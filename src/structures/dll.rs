@@ -38,6 +38,20 @@ impl<T: HasId> DoublyLinkedList<T> {
         }
     }
 
+    pub fn ids(&self) -> Vec<T::Id> {
+        let mut ids = Vec::new();
+        let mut current = self.head.clone();
+
+        while let Some(id) = current {
+            ids.push(id.clone());
+            current = self
+                .nodes
+                .get(&id)
+                .and_then(|node| node.next.clone());
+        }
+        ids
+    }
+
     pub fn _is_empty(&self) -> bool {
         self.head.is_none()
     }

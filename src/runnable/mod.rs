@@ -8,7 +8,7 @@ pub mod complete;
 pub mod jobs;
 
 use crate::parser::ParsedCommand;
-use crate::runnable::jobs::JobInfo;
+use crate::runnable::jobs::{JobInfo, Jobs};
 use crate::structures::dll::DoublyLinkedList;
 use crate::utils::output;
 use crate::structures::trie::{Trie};
@@ -85,6 +85,8 @@ pub fn dispatch(ctx: CommandContext) -> i32 {
     // just create the file
     let _ = output::output_to_stdio(stdout);
     let _ = output::output_to_stdio(stderr);
+
+    Jobs::reap_jobs(&jobs::Jobs, ctx.job_list);
 
     if ctx.parsed_command.background {
         return jobs::Jobs.run_background(args, ctx);
