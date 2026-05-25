@@ -4,6 +4,8 @@ use std::process::Stdio;
 use std::io::Write;
 use std::path::Path;
 
+use crate::runnable::RunResult;
+
 #[derive(Clone, Debug)]
 pub enum Output {
     Stdout,
@@ -74,22 +76,22 @@ pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
     }
 }
 
-pub fn write(message: &str, output: &Output) -> i32 {
+pub fn write(message: &str, output: &Output) -> RunResult {
     match write_to_output(output, message) {
-        Ok(_) => return 0,
+        Ok(_) => return RunResult::exit(0),
         Err(e) => {
             eprintln!("Error writing to output: {}", e);
-            return 1;
+            return RunResult::exit(1);
         }
     }
 }
 
-pub fn error(message: &str, output: &Output, error_code: i32) -> i32 {
+pub fn error(message: &str, output: &Output, error_code: i32) -> RunResult {
     match write_to_output(output, message) {
-        Ok(_) => return error_code,
+        Ok(_) => return RunResult::exit(error_code),
         Err(e) => {
             eprintln!("Error writing to output: {}", e);
-            return 1;
+            return RunResult::exit(1);
         }
     }
 }

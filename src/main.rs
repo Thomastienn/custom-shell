@@ -1,6 +1,6 @@
 use crate::{input::InputCtx, runnable::{cd::Cd, jobs::Jobs}, structures::dll::DoublyLinkedList,};
 use input::Input;
-use runnable::CommandContext;
+use runnable::ShellContext;
 use std::collections::HashMap;
 #[allow(unused_imports)]
 use std::io::{self, ErrorKind, Write};
@@ -40,14 +40,13 @@ fn main() {
         match input_res {
             Ok(parsed_command) => {
                 // dbg!("Parsed command: {:?}", &parsed_command);
-                let ctx = CommandContext {
-                    commands: &commands,
+                let ctx = ShellContext {
+                    commands_map: &commands,
                     completions_path: &mut completions_path,
-                    parsed_command: &parsed_command,
                     file_trie: &mut filesystem_trie,
                     job_list: &mut job_list,
                 };
-                runnable::dispatch(ctx);
+                runnable::dispatch(ctx, parsed_command);
             }
             Err(e) if e.kind() == ErrorKind::Interrupted => {
                 println!();

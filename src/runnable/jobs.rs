@@ -1,6 +1,6 @@
 use std::process::{Child, Command};
 
-use crate::runnable::{CommandContext, JobList, Runnable};
+use crate::runnable::{ExecContext, JobList, RunResult, Runnable};
 use crate::structures::dll::HasId;
 use crate::utils::output;
 
@@ -29,17 +29,18 @@ impl Jobs {
         }
         id
     }
-    pub fn run_background(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
-        let cmd = &ctx.parsed_command.command;
-        let p_out = &ctx.parsed_command.stdout;
-        let p_err = &ctx.parsed_command.stderr;
-        let job_list = ctx.job_list;
+    pub fn run_background(&self, ctx: ExecContext) -> RunResult {
+        let cmd = &ctx.own_parsed_command.command;
+        let p_out = &ctx.own_parsed_command.stdout;
+        let p_err = &ctx.own_parsed_command.stderr;
+        let job_list = &mut *ctx.shell_ctx.job_list;
+        let args = &ctx.own_parsed_command.args;
 
         let stdout = match output::output_to_stdio(p_out) {
             Ok(stdout) => stdout,
             Err(e) => {
                 eprintln!("Error setting up stdout: {}", e);
-                return 1;
+                return RunResult::exit(1);
             }
         };
 
@@ -47,7 +48,7 @@ impl Jobs {
             Ok(stderr) => stderr,
             Err(e) => {
                 eprintln!("Error setting up stderr: {}", e);
-                return 1;
+                return RunResult::exit(1);
             }
         };
 
@@ -59,7 +60,7 @@ impl Jobs {
 
         if let Err(e) = child {
             eprintln!("Error executing background command {}: {}", cmd, e);
-            return 1;
+            return RunResult::exit(1);
         }
         let child_process = child.unwrap();
         let pid = child_process.id();
@@ -71,7 +72,7 @@ impl Jobs {
         };
         job_list.push_back(job_info);
 
-        return output::write(format!("[{}] {}", job_id, pid).as_str(), p_out);
+        output::write(format!("[{}] {}", job_id, pid).as_str(), p_out)
     }
 
     pub fn get_latest_job_id(job_list: &JobList) -> Option<usize> {
@@ -147,8 +148,9 @@ impl Runnable for Jobs {
         "jobs".to_string()
     }
 
-    fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
-        let ll_jobs = ctx.job_list;
+    fn run(&self, ctx: ExecContext) -> RunResult {
+        let ll_jobs = &mut *ctx.shell_ctx.job_list;
+        let stdout = &ctx.own_parsed_command.stdout;
 
         let latest_job_id = Jobs::get_latest_job_id(ll_jobs);
         let second_latest_job_id = Jobs::get_second_latest_job_id(ll_jobs);
@@ -159,12 +161,12 @@ impl Runnable for Jobs {
 
             let content = Jobs::get_job_display(job, latest_job_id, second_latest_job_id);
 
-            let err_code = output::write(content.as_str(), &ctx.parsed_command.stdout);
-            if err_code != 0 {
+            let err_code = output::write(content.as_str(), stdout);
+            if err_code.exit_code != 0 {
                 return err_code;
             }
         }
         Self::reap_jobs(ll_jobs);
-        0
+        RunResult::exit(0)
     }
 }

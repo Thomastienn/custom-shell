@@ -8,10 +8,17 @@ pub struct ParsedCommand {
     pub args: Vec<String>,
     pub stdout: Output,
     pub stderr: Output,
+}
+
+#[derive(Debug)]
+pub struct ParsedShell {
+    pub commands: Vec<ParsedCommand>,
+    pub command_buffer: String,
+    pub args_buffer: Vec<String>,
     pub background: bool,
 }
 
-pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> {
+pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
     let mut command: Option<String> = None;
     let mut args = Vec::new();
 
@@ -22,6 +29,8 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> 
 
     let mut i = 0;
 
+    let mut commands = Vec::new();
+
     while i < tokens.len() {
         match &tokens[i] {
             Token::Word(s) => {
@@ -30,6 +39,28 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> 
                 } else {
                     args.push(s.clone());
                 }
+
+                i += 1;
+            }
+
+            Token::Pipe => {
+                let final_command = match command {
+                    Some(c) => c,
+                    None if strict => return Err("empty command".to_string()),
+                    _ => "".to_string(),
+                };
+                let parsed = ParsedCommand {
+                    command: final_command,
+                    args: args.clone(),
+                    stdout: stdout,
+                    stderr: stderr,
+                };
+                commands.push(parsed);
+
+                args.clear();
+                stdout = Output::Stdout;
+                stderr = Output::Stderr;
+                command = None;
 
                 i += 1;
             }
@@ -69,19 +100,19 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedCommand, String> 
         }
     }
 
-    let command = match command {
+    let command_buffer = match command {
         Some(c) => c,
         None if strict => return Err("empty command".to_string()),
         _ => "".to_string(),
     };
 
-    Ok(ParsedCommand {
-        command,
-        args,
-        stdout,
-        stderr,
-        background,
+    Ok(ParsedShell {
+        commands: commands,
+        background: background,
+        command_buffer: command_buffer,
+        args_buffer: args,
     })
+
 }
 
 fn expect_file(tokens: &[Token], redirect_pos: usize, op: &str, strict: bool) -> Result<String, String> {

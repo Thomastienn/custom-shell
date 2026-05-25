@@ -7,7 +7,7 @@ pub mod r#type;
 pub mod complete;
 pub mod jobs;
 
-use crate::parser::ParsedCommand;
+use crate::parser::{ParsedCommand, ParsedShell};
 use crate::runnable::jobs::{JobInfo, Jobs};
 use crate::structures::dll::DoublyLinkedList;
 use crate::utils::output;
@@ -16,21 +16,46 @@ use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::process::Child;
 
 pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
 pub type CompletionPath = HashMap<String, PathBuf>;
 pub type JobList = DoublyLinkedList<JobInfo>;
-pub struct CommandContext<'a> {
-    pub commands: &'a CommandMap,
+pub struct ShellContext<'a> {
+    pub commands_map: &'a CommandMap,
     pub completions_path: &'a mut CompletionPath,
-    pub parsed_command: &'a ParsedCommand,
     pub file_trie: &'a mut Trie,
     pub job_list: &'a mut JobList,
 }
 
+pub struct ExecContext<'a, 'b> {
+    pub shell_ctx: &'a mut ShellContext<'b>,
+    pub own_parsed_command: &'a ParsedCommand,
+}
+
+#[derive(Debug)]
+pub struct RunResult {
+    pub exit_code: i32,
+    pub external_process: Option<Child>,
+}
+
+impl RunResult {
+    pub fn exit(code: i32) -> Self {
+        RunResult {
+            exit_code: code,
+            external_process: None,
+        }
+    }
+}
+impl PartialEq for RunResult {
+    fn eq(&self, other: &Self) -> bool {
+        self.exit_code == other.exit_code
+    }
+}
+
 pub trait Runnable {
     fn name(&self) -> String;
-    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32;
+    fn run(&self, ctx: ExecContext<'_, '_>) -> RunResult;
     fn is_builtin(&self) -> bool {
         true
     }
@@ -73,27 +98,37 @@ pub fn get_commands() -> CommandMap {
     cmds
 }
 
-pub fn dispatch(ctx: CommandContext) -> i32 {
-    let commands = ctx.commands;
-    let command = &ctx.parsed_command.command;
-    let args = &ctx.parsed_command.args;
+pub fn dispatch(mut shell_ctx: ShellContext, parsed_cmd: ParsedShell) -> RunResult {
+    let commands = shell_ctx.commands_map;
+    let background = parsed_cmd.background;
 
-    let stdout = &ctx.parsed_command.stdout;
-    let stderr = &ctx.parsed_command.stderr;
+    for cmd_process in &parsed_cmd.commands {
+        let stdout = &cmd_process.stdout;
+        let stderr = &cmd_process.stderr;
+        let command = &cmd_process.command;
+        
+        // just create the file
+        let _ = output::output_to_stdio(stdout);
+        let _ = output::output_to_stdio(stderr);
 
-    // just create the file
-    let _ = output::output_to_stdio(stdout);
-    let _ = output::output_to_stdio(stderr);
+        let exe_ctx = ExecContext {
+            shell_ctx: &mut shell_ctx,
+            own_parsed_command: cmd_process,
+        };
+        if background {
+            Jobs.run_background(exe_ctx);
+            continue;
+        }
 
-    if ctx.parsed_command.background {
-        return Jobs.run_background(args, ctx);
+        if let Some(cmd) = commands.get(command) {
+            cmd.run(exe_ctx);
+            continue;
+        }
+
+        let content_error = format!("{}: command not found", command);
+        eprintln!("{}", content_error);
+        return RunResult::exit(127);
     }
 
-    if let Some(cmd) = commands.get(command) {
-        return cmd.run(args, ctx);
-    }
-
-    let content_error = format!("{}: command not found", command);
-    eprintln!("{}", content_error);
-    127
+    return RunResult::exit(0);
 }

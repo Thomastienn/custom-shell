@@ -1,4 +1,4 @@
-use crate::runnable::{CommandContext, Runnable};
+use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::utils::output;
 
 pub struct Echo;
@@ -8,9 +8,11 @@ impl Runnable for Echo {
         "echo".to_string()
     }
 
-    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
+    fn run(&self, ctx: ExecContext) -> RunResult {
+        let args = &ctx.own_parsed_command.args;
+        let stdout = &ctx.own_parsed_command.stdout;
+        
         let content = args.join(" ");
-        let stdout = &ctx.parsed_command.stdout;
         // let stderr = &ctx.parsed_command.stderr;
 
         return output::write(content.as_str(), stdout);

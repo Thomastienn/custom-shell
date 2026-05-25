@@ -1,4 +1,4 @@
-use crate::runnable::{CommandContext, Runnable};
+use crate::runnable::{ExecContext, RunResult, Runnable};
 
 pub struct Exit;
 
@@ -7,7 +7,7 @@ impl Runnable for Exit {
         "exit".to_string()
     }
 
-    fn run(&self, _args: &Vec<String>, _ctx: CommandContext) -> i32 {
+    fn run(&self, _ctx: ExecContext) -> RunResult {
         std::process::exit(0);
     }
 }

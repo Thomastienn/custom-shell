@@ -12,7 +12,8 @@ pub enum Token {
         fd: Option<u8>,
         op: RedirectOp,
     },
-    Background
+    Background,
+    Pipe,
 }
 
 pub struct Tokenizer {
@@ -143,6 +144,12 @@ impl Tokenizer {
                 if c == '&' {
                     self.advance_char(c);
                     return Some(Token::Background);
+                }
+
+                // Pipe operator
+                if c == '|' {
+                    self.advance_char(c);
+                    return Some(Token::Pipe);
                 }
 
                 // If it's redirect

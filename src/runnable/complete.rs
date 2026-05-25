@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::runnable::{CommandContext, Runnable};
+use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::utils::output;
 
 pub struct Complete;
@@ -47,10 +47,11 @@ impl Runnable for Complete {
         "complete".to_string()
     }
 
-    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
-        let stdout = &ctx.parsed_command.stdout;
-        let stderr = &ctx.parsed_command.stderr;
-        let completions_path = ctx.completions_path;
+    fn run(&self, ctx: ExecContext) -> RunResult {
+        let stdout = &ctx.own_parsed_command.stdout;
+        let stderr = &ctx.own_parsed_command.stderr;
+        let completions_path = &mut *ctx.shell_ctx.completions_path;
+        let args = &ctx.own_parsed_command.args;
 
         for (i, arg) in args.iter().enumerate() {
             if !arg.starts_with("-") {
@@ -94,6 +95,6 @@ impl Runnable for Complete {
             }
         }
 
-        0
+        RunResult::exit(0)
     }
 }

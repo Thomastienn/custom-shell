@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
-use crate::parser::{self, ParsedCommand};
+use crate::parser::{self, ParsedShell};
 use crate::runnable::complete::Complete;
 use crate::runnable::{CommandMap, CompletionPath};
 use crate::structures::string;
@@ -48,14 +48,14 @@ pub enum SuggestionType {
 pub struct Input;
 
 impl Input {
-    fn parse_buffer(buffer: &str, strict: bool) -> Result<ParsedCommand, io::Error> {
+    fn parse_buffer(buffer: &str, strict: bool) -> Result<ParsedShell, io::Error> {
         let mut tokenizer = Tokenizer::new(buffer.to_string());
         let tokens = tokenizer.tokenize();
 
         parser::parse(tokens, strict).map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))
     }
 
-    pub fn read_line(prompt: &str, ctx: InputCtx) -> Result<ParsedCommand, io::Error> {
+    pub fn read_line(prompt: &str, ctx: InputCtx) -> Result<ParsedShell, io::Error> {
         let _raw_mode = RawModeGuard::new()?;
 
         let mut stdout = io::stdout();
@@ -122,8 +122,8 @@ impl Input {
                 KeyCode::Tab => {
                     let mut suggestions: Vec<String>;
                     let partial: &str;
-                    let cmd_parsed = parsed_cmd.command.as_str();
-                    let cmd_args = &parsed_cmd.args;
+                    let cmd_parsed = parsed_cmd.command_buffer.as_str();
+                    let cmd_args = &parsed_cmd.args_buffer;
 
                     let mut autocomplete: Option<SuggestionType> = None;
 

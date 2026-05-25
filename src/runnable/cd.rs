@@ -1,4 +1,4 @@
-use crate::runnable::{CommandContext, Runnable};
+use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::structures::trie::Trie;
 use crate::utils::output;
 use crate::utils::path::PathUtils;
@@ -29,16 +29,17 @@ impl Runnable for Cd {
         "cd".to_string()
     }
 
-    fn run(&self, args: &Vec<String>, ctx: CommandContext) -> i32 {
+    fn run(&self, ctx: ExecContext) -> RunResult {
+        let args = &ctx.own_parsed_command.args;
         let mut path = PathBuf::from(args[0].as_str());
-        let stderr = &ctx.parsed_command.stderr;
-        let file_trie = ctx.file_trie;
+        let stderr = &ctx.own_parsed_command.stderr;
+        let file_trie = &mut *ctx.shell_ctx.file_trie;
         
         if path.starts_with("~") {
             if let Ok(home) = env::var("HOME") {
                 path = PathBuf::from(home).join(path.strip_prefix("~").unwrap());
             } else {
-                return 1;
+                return RunResult::exit(1);
             }
         }
         if path.exists() && path.is_dir() {
@@ -47,7 +48,7 @@ impl Runnable for Cd {
             file_trie.clear();
             Cd::build_filesystem_trie(file_trie);
 
-            return 0;
+            return RunResult::exit(0);
         }
         let content_error = format!("cd: {}: No such file or directory", args[0]);
         return output::error(content_error.as_str(), stderr, 1);

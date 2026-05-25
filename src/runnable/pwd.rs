@@ -1,4 +1,4 @@
-use crate::runnable::{CommandContext, Runnable};
+use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::utils::output;
 use std::env;
 
@@ -9,9 +9,9 @@ impl Runnable for Pwd {
         "pwd".to_string()
     }
 
-    fn run(&self, _args: &Vec<String>, ctx: CommandContext) -> i32 {
+    fn run(&self, ctx: ExecContext) -> RunResult {
         let content = env::current_dir().unwrap().display().to_string();
-        let stdout = &ctx.parsed_command.stdout;
+        let stdout = &ctx.own_parsed_command.stdout;
         // let stderr = &ctx.parsed_command.stderr;
 
         return output::write(content.as_str(), stdout);
