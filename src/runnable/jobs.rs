@@ -2,7 +2,7 @@ use std::process::{Child, Command};
 
 use crate::runnable::{ExecContext, JobList, RunResult, Runnable};
 use crate::structures::dll::HasId;
-use crate::utils::output;
+use crate::utils::io;
 
 pub struct JobInfo {
     pub job_id: usize,
@@ -36,7 +36,7 @@ impl Jobs {
         let job_list = &mut *ctx.shell_ctx.job_list;
         let args = &ctx.own_parsed_command.args;
 
-        let stdout = match output::output_to_stdio(p_out) {
+        let stdout = match io::output_to_stdio(p_out) {
             Ok(stdout) => stdout,
             Err(e) => {
                 eprintln!("Error setting up stdout: {}", e);
@@ -44,7 +44,7 @@ impl Jobs {
             }
         };
 
-        let stderr = match output::output_to_stdio(p_err) {
+        let stderr = match io::output_to_stdio(p_err) {
             Ok(stderr) => stderr,
             Err(e) => {
                 eprintln!("Error setting up stderr: {}", e);
@@ -72,7 +72,7 @@ impl Jobs {
         };
         job_list.push_back(job_info);
 
-        output::write(format!("[{}] {}", job_id, pid).as_str(), p_out)
+        io::write(format!("[{}] {}", job_id, pid).as_str(), p_out)
     }
 
     pub fn get_latest_job_id(job_list: &JobList) -> Option<usize> {
@@ -161,7 +161,7 @@ impl Runnable for Jobs {
 
             let content = Jobs::get_job_display(job, latest_job_id, second_latest_job_id);
 
-            let err_code = output::write(content.as_str(), stdout);
+            let err_code = io::write(content.as_str(), stdout);
             if err_code.exit_code != 0 {
                 return err_code;
             }

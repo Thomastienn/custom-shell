@@ -1,5 +1,5 @@
 use crate::{input::InputCtx, runnable::{cd::Cd, jobs::Jobs}, structures::dll::DoublyLinkedList,};
-use input::Input;
+use input::InputShell;
 use runnable::ShellContext;
 use std::collections::HashMap;
 #[allow(unused_imports)]
@@ -36,7 +36,7 @@ fn main() {
         for job_str in removed_jobs {
             println!("{}", job_str);
         }
-        let input_res = Input::read_line("$ ", input_ctx);
+        let input_res = InputShell::read_line("$ ", input_ctx);
         match input_res {
             Ok(parsed_command) => {
                 // dbg!("Parsed command: {:?}", &parsed_command);

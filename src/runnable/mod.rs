@@ -10,7 +10,7 @@ pub mod jobs;
 use crate::parser::{ParsedCommand, ParsedShell};
 use crate::runnable::jobs::{JobInfo, Jobs};
 use crate::structures::dll::DoublyLinkedList;
-use crate::utils::output;
+use crate::utils::io;
 use crate::structures::trie::{Trie};
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
@@ -108,8 +108,8 @@ pub fn dispatch(mut shell_ctx: ShellContext, parsed_cmd: ParsedShell) -> RunResu
         let command = &cmd_process.command;
         
         // just create the file
-        let _ = output::output_to_stdio(stdout);
-        let _ = output::output_to_stdio(stderr);
+        let _ = io::output_to_stdio(stdout);
+        let _ = io::output_to_stdio(stderr);
 
         let exe_ctx = ExecContext {
             shell_ctx: &mut shell_ctx,

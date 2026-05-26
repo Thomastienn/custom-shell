@@ -1,13 +1,21 @@
 use std::fs::{OpenOptions, self};
 use std::io;
-use std::process::Stdio;
+use std::process::{ChildStdout, Stdio};
 use std::io::Write;
 use std::path::Path;
 
 use crate::runnable::RunResult;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
+pub enum Input {
+    Stdin,
+    File(String),
+    Pipe
+}
+
+#[derive(Debug)]
 pub enum Output {
+    Pipe,
     Stdout,
     Stderr,
     File(String),
@@ -45,6 +53,23 @@ pub fn write_to_output(output: &Output, content: impl AsRef<str>) -> std::io::Re
 
             writeln!(file, "{}", content)
         }
+        Output::Pipe => {
+            Ok(())
+        }
+    }
+}
+
+pub fn input_to_stdio(input: &Input) -> io::Result<Stdio> {
+    match input {
+        Input::Stdin => Ok(Stdio::inherit()),
+        Input::File(path) => {
+            let file = OpenOptions::new()
+                .read(true)
+                .open(path)?;
+
+            Ok(Stdio::from(file))
+        }
+        Input::Pipe => Ok(Stdio::piped()),
     }
 }
 
@@ -73,6 +98,8 @@ pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
 
             Ok(Stdio::from(file))
         }
+
+        Output::Pipe => Ok(Stdio::piped()),
     }
 }
 

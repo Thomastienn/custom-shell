@@ -45,9 +45,9 @@ pub enum SuggestionType {
     Filesystem,
 }
 
-pub struct Input;
+pub struct InputShell;
 
-impl Input {
+impl InputShell {
     fn parse_buffer(buffer: &str, strict: bool) -> Result<ParsedShell, io::Error> {
         let mut tokenizer = Tokenizer::new(buffer.to_string());
         let tokens = tokenizer.tokenize();

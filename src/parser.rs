@@ -1,11 +1,13 @@
-use crate::{tokenizer::Token, utils::output};
+use crate::utils::io::Input;
+use crate::{tokenizer::Token, utils::io};
 use crate::tokenizer::RedirectOp;
-use output::Output;
+use io::Output;
 
 #[derive(Debug)]
 pub struct ParsedCommand {
     pub command: String,
     pub args: Vec<String>,
+    pub stdin: Input,
     pub stdout: Output,
     pub stderr: Output,
 }
@@ -22,6 +24,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
     let mut command: Option<String> = None;
     let mut args = Vec::new();
 
+    let mut stdin = Input::Stdin;
     let mut stdout = Output::Stdout;
     let mut stderr = Output::Stderr;
 
@@ -52,6 +55,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                 let parsed = ParsedCommand {
                     command: final_command,
                     args: args.clone(),
+                    stdin: stdin,
                     stdout: stdout,
                     stderr: stderr,
                 };
@@ -60,6 +64,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                 args.clear();
                 stdout = Output::Stdout;
                 stderr = Output::Stderr;
+                stdin = Input::Stdin;
                 command = None;
 
                 i += 1;
@@ -82,17 +87,32 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                 );
                 let file = expect_file(&tokens, i, &op_str, strict)?;
 
-                let output = match op {
-                    RedirectOp::Write => Output::File(file),
-                    RedirectOp::Append => Output::AppendFile(file),
-                    RedirectOp::Read => unreachable!(),
-                };
+                match op {
+                    RedirectOp::Read => {
+                        match fd.unwrap_or(0) {
+                            0 => stdin = Input::File(file),
+                            n if strict => return Err(format!("unsupported file descriptor: {}", n)),
+                            _ => {}
+                        }
+                    }
 
-                match fd.unwrap_or(1) {
-                    1 => stdout = output,
-                    2 => stderr = output,
-                    n if strict => return Err(format!("unsupported file descriptor: {}", n)),
-                    _ => ()
+                    RedirectOp::Write => {
+                        match fd.unwrap_or(1) {
+                            1 => stdout = Output::File(file),
+                            2 => stderr = Output::File(file),
+                            n if strict => return Err(format!("unsupported file descriptor: {}", n)),
+                            _ => {}
+                        }
+                    }
+
+                    RedirectOp::Append => {
+                        match fd.unwrap_or(1) {
+                            1 => stdout = Output::AppendFile(file),
+                            2 => stderr = Output::AppendFile(file),
+                            n if strict => return Err(format!("unsupported file descriptor: {}", n)),
+                            _ => {}
+                        }
+                    }
                 }
 
                 i += 2;

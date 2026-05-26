@@ -1,5 +1,5 @@
 use crate::runnable::{ExecContext, RunResult, Runnable};
-use crate::utils::output;
+use crate::utils::io;
 
 pub struct Echo;
 
@@ -15,6 +15,6 @@ impl Runnable for Echo {
         let content = args.join(" ");
         // let stderr = &ctx.parsed_command.stderr;
 
-        return output::write(content.as_str(), stdout);
+        return io::write(content.as_str(), stdout);
     }
 }

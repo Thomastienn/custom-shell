@@ -1,6 +1,6 @@
 use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::structures::trie::Trie;
-use crate::utils::output;
+use crate::utils::io;
 use crate::utils::path::PathUtils;
 use std::{env, path::PathBuf};
 
@@ -51,7 +51,7 @@ impl Runnable for Cd {
             return RunResult::exit(0);
         }
         let content_error = format!("cd: {}: No such file or directory", args[0]);
-        return output::error(content_error.as_str(), stderr, 1);
+        return io::error(content_error.as_str(), stderr, 1);
     }
 }
 

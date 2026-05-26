@@ -1,5 +1,5 @@
 use crate::runnable::{ExecContext, RunResult, Runnable};
-use crate::utils::output;
+use crate::utils::io;
 use std::process::Command;
 
 pub struct ExternalCommand {
@@ -25,15 +25,24 @@ impl Runnable for ExternalCommand {
         let args = &ctx.own_parsed_command.args;
         let p_stdout = &ctx.own_parsed_command.stdout;
         let p_stderr = &ctx.own_parsed_command.stderr;
+        let p_stdin = &ctx.own_parsed_command.stdin;
 
-        let stdout = match output::output_to_stdio(p_stdout) {
+        let stdin = match io::input_to_stdio(p_stdin) {
+            Ok(stdin) => stdin,
+            Err(e) => {
+                eprintln!("Error setting up stdin: {}", e);
+                return RunResult::exit(1);
+            }
+        };
+
+        let stdout = match io::output_to_stdio(p_stdout) {
             Ok(stdout) => stdout,
             Err(e) => {
                 eprintln!("Error setting up stdout: {}", e);
                 return RunResult::exit(1);
             }
         };
-        let stderr = match output::output_to_stdio(p_stderr) {
+        let stderr = match io::output_to_stdio(p_stderr) {
             Ok(stderr) => stderr,
             Err(e) => {
                 eprintln!("Error setting up stderr: {}", e);
@@ -42,6 +51,7 @@ impl Runnable for ExternalCommand {
         };
         RunResult::exit(Command::new(&self.name)
             .args(args)
+            .stdin(stdin)
             .stdout(stdout)
             .stderr(stderr)
             .status()

@@ -1,5 +1,5 @@
 use crate::runnable::{ExecContext, RunResult, Runnable};
-use crate::utils::output;
+use crate::utils::io;
 use std::env;
 
 pub struct Pwd;
@@ -14,7 +14,7 @@ impl Runnable for Pwd {
         let stdout = &ctx.own_parsed_command.stdout;
         // let stderr = &ctx.parsed_command.stderr;
 
-        return output::write(content.as_str(), stdout);
+        return io::write(content.as_str(), stdout);
     }
 }
 
