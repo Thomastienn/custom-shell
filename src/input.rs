@@ -116,7 +116,7 @@ impl InputShell {
                     if current_history > 0 {
                         current_history -= 1;
                         buffer = ctx.history[current_history].clone();
-                        print!("\r{prompt}{buffer}");
+                        print!("\r{prompt}{buffer}\x1b[K");
                         stdout.flush()?;
                     }
                 }
