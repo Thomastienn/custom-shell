@@ -69,7 +69,7 @@ impl InputShell {
         const MAX_HISTORY_KEYPRESSES: usize = 3;
 
         let mut tab_cnt = 0;
-        let mut current_history = ctx.history.len();
+        let mut current_history = ctx.history.len(); // 1-indexed since its usize
 
         loop {
             let Event::Key(key) = event::read()? else {
@@ -115,6 +115,15 @@ impl InputShell {
                 KeyCode::Up => {
                     if current_history > 0 {
                         current_history -= 1;
+                        buffer = ctx.history[current_history].clone();
+                        print!("\r{prompt}{buffer}\x1b[K");
+                        stdout.flush()?;
+                    }
+                }
+
+                KeyCode::Down => {
+                    if current_history + 1 < ctx.history.len() {
+                        current_history += 1;
                         buffer = ctx.history[current_history].clone();
                         print!("\r{prompt}{buffer}\x1b[K");
                         stdout.flush()?;
