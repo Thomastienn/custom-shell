@@ -41,6 +41,32 @@ fn create_parent_folder(path: &str) -> std::io::Result<()> {
     Ok(())
 }
 
+pub fn input_to_stdio(
+    input: &Input,
+    pipe_input: Option<PipeInput>,
+    stdin_text: &mut Option<String>,
+) -> io::Result<Stdio> {
+    match input {
+        Input::Stdin => Ok(Stdio::inherit()),
+        Input::File(path) => {
+            let file = OpenOptions::new().read(true).open(path)?;
+
+            Ok(Stdio::from(file))
+        }
+        Input::Pipe => match pipe_input {
+            Some(PipeInput::FromProcess(stdout)) => Ok(Stdio::from(stdout)),
+            Some(PipeInput::FromBuiltin(text)) => {
+                *stdin_text = Some(text);
+                Ok(Stdio::piped())
+            }
+            None => Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "missing pipe input",
+            )),
+        },
+    }
+}
+
 pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
     match output {
         Output::Stdout => Ok(Stdio::inherit()),

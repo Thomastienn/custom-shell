@@ -1,8 +1,7 @@
 use crate::runnable::{ExecContext, RunResult, Runnable};
-use crate::utils::io::{self, Input, Output, PipeInput};
-use std::fs::OpenOptions;
+use crate::utils::io::{self, Output};
 use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 pub struct ExternalCommand {
     name: String,
@@ -28,29 +27,14 @@ impl Runnable for ExternalCommand {
         let p_stdout = &ctx.own_parsed_command.stdout;
         let p_stderr = &ctx.own_parsed_command.stderr;
         let p_stdin = &ctx.own_parsed_command.stdin;
-        let pipe_input = ctx.pipe_input;
 
         let mut stdin_text = None;
-        let stdin = match p_stdin {
-            Input::Stdin => Stdio::inherit(),
-            Input::File(path) => match OpenOptions::new().read(true).open(path) {
-                Ok(file) => Stdio::from(file),
-                Err(e) => {
-                    eprintln!("Error setting up stdin: {}", e);
-                    return RunResult::exit(1);
-                }
-            },
-            Input::Pipe => match pipe_input {
-                Some(PipeInput::FromProcess(stdout)) => Stdio::from(stdout),
-                Some(PipeInput::FromBuiltin(text)) => {
-                    stdin_text = Some(text);
-                    Stdio::piped()
-                }
-                None => {
-                    eprintln!("Error setting up stdin: missing pipe input");
-                    return RunResult::exit(1);
-                }
-            },
+        let stdin = match io::input_to_stdio(p_stdin, ctx.pipe_input, &mut stdin_text) {
+            Ok(stdin) => stdin,
+            Err(e) => {
+                eprintln!("Error setting up stdin: {}", e);
+                return RunResult::exit(1);
+            }
         };
 
         let stdout = match io::output_to_stdio(p_stdout) {
