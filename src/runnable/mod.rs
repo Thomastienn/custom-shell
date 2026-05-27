@@ -6,6 +6,7 @@ pub mod pwd;
 pub mod r#type;
 pub mod complete;
 pub mod jobs;
+pub mod history;
 
 use crate::parser::{ParsedCommand, ParsedShell};
 use crate::runnable::jobs::{JobInfo, Jobs};
@@ -26,6 +27,7 @@ pub struct ShellContext<'a> {
     pub completions_path: &'a mut CompletionPath,
     pub file_trie: &'a mut Trie,
     pub job_list: &'a mut JobList,
+    pub history: &'a Vec<String>,
 }
 
 pub struct ExecContext<'a, 'b> {
@@ -105,6 +107,7 @@ pub fn get_commands() -> CommandMap {
         Box::new(r#type::Type) as Box<dyn Runnable>,
         Box::new(complete::Complete) as Box<dyn Runnable>,
         Box::new(jobs::Jobs) as Box<dyn Runnable>,
+        Box::new(history::History) as Box<dyn Runnable>,
     ];
     for cmd in builtin_cmds {
         cmds.insert(cmd.name(), cmd);

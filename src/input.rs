@@ -32,6 +32,7 @@ pub struct InputCtx<'a> {
     pub completions_path: &'a CompletionPath,
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
+    pub history: &'a mut Vec<String>,
 }
 
 type PrevArg = String;
@@ -97,9 +98,7 @@ impl InputShell {
                                 return Err(io::Error::new(ErrorKind::Interrupted, "Interrupted"));
                             }
                             'j' => {
-                                print!("\r\n");
-                                stdout.flush()?;
-                                return Self::parse_buffer(&buffer, true);
+                                return Self::submit(&mut stdout, &buffer, ctx.history);
                             }
                             'z' => {
                                 dbg!(&parsed_cmd);
@@ -226,11 +225,18 @@ impl InputShell {
                 KeyCode::Enter => {
                     print!("\r\n");
                     stdout.flush()?;
-                    return Self::parse_buffer(&buffer, true);
+                    return Self::submit(&mut stdout, &buffer, ctx.history);
                 }
 
                 _ => {}
             }
         }
+    }
+
+    fn submit(stdout: &mut io::Stdout, buffer: &str, history: &mut Vec<String>) -> Result<ParsedShell, io::Error> {
+        print!("\r\n");
+        stdout.flush()?;
+        history.push(buffer.to_string());
+        return Self::parse_buffer(buffer, true);
     }
 }

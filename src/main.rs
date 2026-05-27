@@ -24,6 +24,7 @@ fn main() {
 
     let mut completions_path = HashMap::new();
     let mut job_list = DoublyLinkedList::new();
+    let mut history = Vec::new();
 
     loop {
         let input_ctx = InputCtx {
@@ -31,6 +32,7 @@ fn main() {
             completions_path: &completions_path,
             cmd_pref: &cmd_trie,
             filesystem_pref: &filesystem_trie,
+            history: &mut history,
         };
         let removed_jobs = Jobs::reap_jobs(&mut job_list);
         for job_str in removed_jobs {
@@ -45,6 +47,7 @@ fn main() {
                     completions_path: &mut completions_path,
                     file_trie: &mut filesystem_trie,
                     job_list: &mut job_list,
+                    history: &history,
                 };
                 runnable::dispatch(ctx, parsed_command);
             }
