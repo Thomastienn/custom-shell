@@ -47,7 +47,7 @@ fn main() {
                     completions_path: &mut completions_path,
                     file_trie: &mut filesystem_trie,
                     job_list: &mut job_list,
-                    history: &history,
+                    history: &mut history,
                 };
                 runnable::dispatch(ctx, parsed_command);
             }

@@ -67,6 +67,8 @@ pub fn input_to_stdio(
     }
 }
 
+// TODO: should have read_from_input function and read()
+
 pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
     match output {
         Output::Stdout => Ok(Stdio::inherit()),

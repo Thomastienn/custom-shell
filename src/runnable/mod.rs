@@ -27,7 +27,7 @@ pub struct ShellContext<'a> {
     pub completions_path: &'a mut CompletionPath,
     pub file_trie: &'a mut Trie,
     pub job_list: &'a mut JobList,
-    pub history: &'a Vec<String>,
+    pub history: &'a mut Vec<String>,
 }
 
 pub struct ExecContext<'a, 'b> {

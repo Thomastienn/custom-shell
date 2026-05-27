@@ -1,3 +1,5 @@
+use std::fs;
+
 use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::utils::io;
 
@@ -11,6 +13,30 @@ impl Runnable for History {
     fn run(&self, ctx: ExecContext) -> RunResult {
         let args = &ctx.own_parsed_command.args;
         let stdout = &ctx.own_parsed_command.stdout;
+
+        for (i, arg) in args.iter().enumerate() {
+            if !arg.starts_with("-") {
+                continue;
+            }
+            if i + 1 >= args.len() {
+                eprintln!("Error: Option {} requires an argument", arg);
+                return RunResult::exit(1);
+            }
+            let next_arg = &args[i + 1];
+            match arg.as_str() {
+                "-r" => {
+                    let Ok(content) = fs::read_to_string(next_arg) else {
+                        eprintln!("Error: Failed to read file {}", next_arg);
+                        return RunResult::exit(1);
+                    };
+                    content.lines().for_each(|line| ctx.shell_ctx.history.push(line.to_string()));
+                }
+                _ => {
+                    eprintln!("Error: Unknown option {}", arg);
+                    return RunResult::exit(1);
+                }
+            }
+        }
 
         let mut start = 0;
         if args.len() > 0 {
