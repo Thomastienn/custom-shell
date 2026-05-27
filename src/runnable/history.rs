@@ -30,6 +30,7 @@ impl Runnable for History {
                         return RunResult::exit(1);
                     };
                     content.lines().for_each(|line| ctx.shell_ctx.history.push(line.to_string()));
+                    return RunResult::exit(0);
                 }
                 _ => {
                     eprintln!("Error: Unknown option {}", arg);
