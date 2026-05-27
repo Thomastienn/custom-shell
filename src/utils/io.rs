@@ -1,25 +1,37 @@
 use std::fs::{OpenOptions, self};
 use std::io;
-use std::process::{ChildStdout, Stdio};
 use std::io::Write;
 use std::path::Path;
+use std::process::{Child, ChildStdout, Stdio};
 
 use crate::runnable::RunResult;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Input {
     Stdin,
+    Pipe,
     File(String),
-    Pipe
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Output {
     Pipe,
     Stdout,
     Stderr,
     File(String),
     AppendFile(String),
+}
+
+#[derive(Debug)]
+pub enum PipeInput {
+    FromProcess(ChildStdout),
+    FromBuiltin(String),
+}
+
+#[derive(Debug)]
+pub enum PipeOutput {
+    Process(Child),
+    Text(String),
 }
 
 fn create_parent_folder(path: &str) -> std::io::Result<()> {
@@ -53,23 +65,7 @@ pub fn write_to_output(output: &Output, content: impl AsRef<str>) -> std::io::Re
 
             writeln!(file, "{}", content)
         }
-        Output::Pipe => {
-            Ok(())
-        }
-    }
-}
-
-pub fn input_to_stdio(input: &Input) -> io::Result<Stdio> {
-    match input {
-        Input::Stdin => Ok(Stdio::inherit()),
-        Input::File(path) => {
-            let file = OpenOptions::new()
-                .read(true)
-                .open(path)?;
-
-            Ok(Stdio::from(file))
-        }
-        Input::Pipe => Ok(Stdio::piped()),
+        Output::Pipe => Ok(()),
     }
 }
 
@@ -91,10 +87,7 @@ pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
 
         Output::AppendFile(path) => {
             create_parent_folder(path)?;
-            let file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(path)?;
+            let file = OpenOptions::new().create(true).append(true).open(path)?;
 
             Ok(Stdio::from(file))
         }
@@ -104,6 +97,10 @@ pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
 }
 
 pub fn write(message: &str, output: &Output) -> RunResult {
+    if matches!(output, Output::Pipe) {
+        return RunResult::pipe_output(format!("{}\n", message), 0);
+    }
+
     match write_to_output(output, message) {
         Ok(_) => return RunResult::exit(0),
         Err(e) => {
@@ -114,6 +111,10 @@ pub fn write(message: &str, output: &Output) -> RunResult {
 }
 
 pub fn error(message: &str, output: &Output, error_code: i32) -> RunResult {
+    if matches!(output, Output::Pipe) {
+        return RunResult::pipe_output(format!("{}\n", message), error_code);
+    }
+
     match write_to_output(output, message) {
         Ok(_) => return RunResult::exit(error_code),
         Err(e) => {

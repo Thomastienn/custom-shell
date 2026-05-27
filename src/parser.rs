@@ -47,7 +47,11 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
             }
 
             Token::Pipe => {
-                let final_command = match command {
+                if matches!(stdout, Output::Stdout) {
+                    stdout = Output::Pipe;
+                }
+
+                let final_command = match command.take() {
                     Some(c) => c,
                     None if strict => return Err("empty command".to_string()),
                     _ => "".to_string(),
@@ -55,16 +59,16 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                 let parsed = ParsedCommand {
                     command: final_command,
                     args: args.clone(),
-                    stdin: stdin,
-                    stdout: stdout,
-                    stderr: stderr,
+                    stdin: stdin.clone(),
+                    stdout: stdout.clone(),
+                    stderr: stderr.clone(),
                 };
                 commands.push(parsed);
 
                 args.clear();
                 stdout = Output::Stdout;
                 stderr = Output::Stderr;
-                stdin = Input::Stdin;
+                stdin = Input::Pipe;
                 command = None;
 
                 i += 1;
@@ -120,17 +124,28 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
         }
     }
 
-    let command_buffer = match command {
-        Some(c) => c,
+    let command_buffer = command.clone().unwrap_or_default();
+    let args_buffer = args.clone();
+
+    match command.take() {
+        Some(final_command) => {
+            commands.push(ParsedCommand {
+                command: final_command,
+                args,
+                stdin,
+                stdout,
+                stderr,
+            });
+        }
         None if strict => return Err("empty command".to_string()),
-        _ => "".to_string(),
-    };
+        _ => {}
+    }
 
     Ok(ParsedShell {
         commands: commands,
         background: background,
         command_buffer: command_buffer,
-        args_buffer: args,
+        args_buffer: args_buffer,
     })
 
 }

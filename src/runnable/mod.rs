@@ -10,7 +10,7 @@ pub mod jobs;
 use crate::parser::{ParsedCommand, ParsedShell};
 use crate::runnable::jobs::{JobInfo, Jobs};
 use crate::structures::dll::DoublyLinkedList;
-use crate::utils::io;
+use crate::utils::io::{self, PipeOutput, PipeInput};
 use crate::structures::trie::{Trie};
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
@@ -31,19 +31,34 @@ pub struct ShellContext<'a> {
 pub struct ExecContext<'a, 'b> {
     pub shell_ctx: &'a mut ShellContext<'b>,
     pub own_parsed_command: &'a ParsedCommand,
+    pub pipe_input: Option<PipeInput>,
 }
 
 #[derive(Debug)]
 pub struct RunResult {
     pub exit_code: i32,
-    pub external_process: Option<Child>,
+    pub pipe_output: Option<PipeOutput>,
 }
 
 impl RunResult {
     pub fn exit(code: i32) -> Self {
         RunResult {
             exit_code: code,
-            external_process: None,
+            pipe_output: None,
+        }
+    }
+
+    pub fn pipe_process(child: Child) -> Self {
+        RunResult {
+            exit_code: 0,
+            pipe_output: Some(PipeOutput::Process(child)),
+        }
+    }
+
+    pub fn pipe_output(output: String, code: i32) -> Self {
+        RunResult {
+            exit_code: code,
+            pipe_output: Some(PipeOutput::Text(output)),
         }
     }
 }
@@ -101,6 +116,9 @@ pub fn get_commands() -> CommandMap {
 pub fn dispatch(mut shell_ctx: ShellContext, parsed_cmd: ParsedShell) -> RunResult {
     let commands = shell_ctx.commands_map;
     let background = parsed_cmd.background;
+    let mut pipe_input: Option<PipeInput> = None;
+    let mut pipeline_children: Vec<Child> = Vec::new();
+    let mut last_result = RunResult::exit(0);
 
     for cmd_process in &parsed_cmd.commands {
         let stdout = &cmd_process.stdout;
@@ -114,21 +132,45 @@ pub fn dispatch(mut shell_ctx: ShellContext, parsed_cmd: ParsedShell) -> RunResu
         let exe_ctx = ExecContext {
             shell_ctx: &mut shell_ctx,
             own_parsed_command: cmd_process,
+            pipe_input: pipe_input.take(),
         };
         if background {
-            Jobs.run_background(exe_ctx);
+            last_result = Jobs.run_background(exe_ctx);
             continue;
         }
 
         if let Some(cmd) = commands.get(command) {
-            cmd.run(exe_ctx);
+            let mut result = cmd.run(exe_ctx);
+
+            match result.pipe_output.take() {
+                Some(PipeOutput::Process(mut child)) => {
+                    pipe_input = child
+                        .stdout
+                        .take()
+                        .map(PipeInput::FromProcess);
+                    pipeline_children.push(child);
+                }
+                Some(PipeOutput::Text(output)) => {
+                    pipe_input = Some(PipeInput::FromBuiltin(output));
+                }
+                None => pipe_input = None,
+            }
+
+            last_result = result;
             continue;
         }
 
         let content_error = format!("{}: command not found", command);
         eprintln!("{}", content_error);
+        for mut child in pipeline_children {
+            let _ = child.wait();
+        }
         return RunResult::exit(127);
     }
 
-    return RunResult::exit(0);
+    for mut child in pipeline_children {
+        let _ = child.wait();
+    }
+
+    return last_result;
 }
