@@ -22,12 +22,24 @@ use std::process::Child;
 pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
 pub type CompletionPath = HashMap<String, PathBuf>;
 pub type JobList = DoublyLinkedList<JobInfo>;
+pub struct History {
+    pub entries: Vec<String>,
+    pub last_appended: usize
+}
+impl History {
+    pub fn new() -> Self {
+        History {
+            entries: Vec::new(),
+            last_appended: 0,
+        }
+    }
+}
 pub struct ShellContext<'a> {
     pub commands_map: &'a CommandMap,
     pub completions_path: &'a mut CompletionPath,
     pub file_trie: &'a mut Trie,
     pub job_list: &'a mut JobList,
-    pub history: &'a mut Vec<String>,
+    pub history: &'a mut History,
 }
 
 pub struct ExecContext<'a, 'b> {

@@ -7,7 +7,7 @@ use crossterm::terminal;
 
 use crate::parser::{self, ParsedShell};
 use crate::runnable::complete::Complete;
-use crate::runnable::{CommandMap, CompletionPath};
+use crate::runnable::{CommandMap, CompletionPath, History};
 use crate::structures::string;
 use crate::structures::trie::{Trie};
 use crate::tokenizer::Tokenizer;
@@ -32,7 +32,7 @@ pub struct InputCtx<'a> {
     pub completions_path: &'a CompletionPath,
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
-    pub history: &'a mut Vec<String>,
+    pub history: &'a mut History,
 }
 
 type PrevArg = String;
@@ -69,7 +69,7 @@ impl InputShell {
         const MAX_HISTORY_KEYPRESSES: usize = 3;
 
         let mut tab_cnt = 0;
-        let mut current_history = ctx.history.len(); // 1-indexed since its usize
+        let mut current_history = ctx.history.entries.len(); // 1-indexed since its usize
 
         loop {
             let Event::Key(key) = event::read()? else {
@@ -115,16 +115,16 @@ impl InputShell {
                 KeyCode::Up => {
                     if current_history > 0 {
                         current_history -= 1;
-                        buffer = ctx.history[current_history].clone();
+                        buffer = ctx.history.entries[current_history].clone();
                         print!("\r{prompt}{buffer}\x1b[K");
                         stdout.flush()?;
                     }
                 }
 
                 KeyCode::Down => {
-                    if current_history + 1 < ctx.history.len() {
+                    if current_history + 1 < ctx.history.entries.len() {
                         current_history += 1;
-                        buffer = ctx.history[current_history].clone();
+                        buffer = ctx.history.entries[current_history].clone();
                         print!("\r{prompt}{buffer}\x1b[K");
                         stdout.flush()?;
                     }
@@ -252,10 +252,10 @@ impl InputShell {
         }
     }
 
-    fn submit(stdout: &mut io::Stdout, buffer: &str, history: &mut Vec<String>) -> Result<ParsedShell, io::Error> {
+    fn submit(stdout: &mut io::Stdout, buffer: &str, history: &mut History) -> Result<ParsedShell, io::Error> {
         print!("\r\n");
         stdout.flush()?;
-        history.push(buffer.to_string());
+        history.entries.push(buffer.to_string());
         return Self::parse_buffer(buffer, true);
     }
 }
