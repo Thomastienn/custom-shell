@@ -1,8 +1,10 @@
 use std::process::{Child, Command};
 
-use crate::runnable::{ExecContext, JobList, RunResult, Runnable};
-use crate::structures::dll::HasId;
+use crate::runnable::{ExecContext, RunResult, Runnable};
+use crate::structures::dll::{DoublyLinkedList, HasId};
 use crate::utils::io;
+
+pub type JobList = DoublyLinkedList<JobInfo>;
 
 pub struct JobInfo {
     pub job_id: usize,

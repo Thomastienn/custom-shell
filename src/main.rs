@@ -1,4 +1,4 @@
-use crate::{input::InputCtx, runnable::{cd::Cd, history::HistoryCtx, jobs::Jobs}, structures::dll::DoublyLinkedList,};
+use crate::{input::InputCtx, runnable::{cd::Cd, declare::ShellVariable, history::HistoryCtx, jobs::Jobs}, structures::dll::DoublyLinkedList,};
 use input::InputShell;
 use runnable::ShellContext;
 use std::collections::HashMap;
@@ -25,6 +25,7 @@ fn main() {
     let mut completions_path = HashMap::new();
     let mut job_list = DoublyLinkedList::new();
     let mut history = HistoryCtx::new();
+    let mut shell_vars = ShellVariable::new();
 
     loop {
         let input_ctx = InputCtx {
@@ -48,6 +49,7 @@ fn main() {
                     file_trie: &mut filesystem_trie,
                     job_list: &mut job_list,
                     history: &mut history,
+                    shell_vars: &mut shell_vars,
                 };
                 let result = runnable::dispatch(ctx, parsed_command);
                 if result.shell_exit {

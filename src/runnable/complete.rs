@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 
 use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::utils::io;
 
+pub type CompletionPath = HashMap<String, PathBuf>;
 pub struct Complete;
 
 impl Complete {

@@ -7,28 +7,28 @@ pub mod r#type;
 pub mod complete;
 pub mod jobs;
 pub mod history;
+pub mod declare;
 
 use crate::parser::{ParsedCommand, ParsedShell};
+use crate::runnable::complete::CompletionPath;
+use crate::runnable::declare::ShellVariable;
 use crate::runnable::history::{HistoryCtx};
-use crate::runnable::jobs::{JobInfo, Jobs};
-use crate::structures::dll::DoublyLinkedList;
+use crate::runnable::jobs::{JobList, Jobs};
 use crate::utils::io::{self, PipeOutput, PipeInput};
 use crate::structures::trie::{Trie};
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::process::Child;
 
 pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
-pub type CompletionPath = HashMap<String, PathBuf>;
-pub type JobList = DoublyLinkedList<JobInfo>;
 pub struct ShellContext<'a> {
     pub commands_map: &'a CommandMap,
     pub completions_path: &'a mut CompletionPath,
     pub file_trie: &'a mut Trie,
     pub job_list: &'a mut JobList,
     pub history: &'a mut HistoryCtx,
+    pub shell_vars: &'a mut ShellVariable
 }
 
 pub struct ExecContext<'a, 'b> {
@@ -121,6 +121,7 @@ pub fn get_commands() -> CommandMap {
         Box::new(complete::Complete) as Box<dyn Runnable>,
         Box::new(jobs::Jobs) as Box<dyn Runnable>,
         Box::new(history::History) as Box<dyn Runnable>,
+        Box::new(declare::Declare) as Box<dyn Runnable>,
     ];
     for cmd in builtin_cmds {
         cmds.insert(cmd.name(), cmd);

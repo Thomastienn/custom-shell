@@ -6,9 +6,9 @@ use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
 use crate::parser::{self, ParsedShell};
-use crate::runnable::complete::Complete;
+use crate::runnable::complete::{Complete, CompletionPath};
 use crate::runnable::history::HistoryCtx;
-use crate::runnable::{CommandMap, CompletionPath};
+use crate::runnable::{CommandMap};
 use crate::structures::string;
 use crate::structures::trie::{Trie};
 use crate::tokenizer::Tokenizer;
