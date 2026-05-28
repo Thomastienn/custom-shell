@@ -49,7 +49,10 @@ fn main() {
                     job_list: &mut job_list,
                     history: &mut history,
                 };
-                runnable::dispatch(ctx, parsed_command);
+                let result = runnable::dispatch(ctx, parsed_command);
+                if result.shell_exit {
+                    break;
+                }
             }
             Err(e) if e.kind() == ErrorKind::Interrupted => {
                 println!();

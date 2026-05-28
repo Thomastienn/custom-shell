@@ -9,7 +9,7 @@ pub mod jobs;
 pub mod history;
 
 use crate::parser::{ParsedCommand, ParsedShell};
-use crate::runnable::history::{History, HistoryCtx};
+use crate::runnable::history::{HistoryCtx};
 use crate::runnable::jobs::{JobInfo, Jobs};
 use crate::structures::dll::DoublyLinkedList;
 use crate::utils::io::{self, PipeOutput, PipeInput};
@@ -41,6 +41,7 @@ pub struct ExecContext<'a, 'b> {
 pub struct RunResult {
     pub exit_code: i32,
     pub pipe_output: Option<PipeOutput>,
+    pub shell_exit: bool,
 }
 
 impl RunResult {
@@ -48,6 +49,15 @@ impl RunResult {
         RunResult {
             exit_code: code,
             pipe_output: None,
+            shell_exit: false,
+        }
+    }
+
+    pub fn exit_shell() -> Self {
+        RunResult {
+            exit_code: 0,
+            pipe_output: None,
+            shell_exit: true,
         }
     }
 
@@ -55,6 +65,7 @@ impl RunResult {
         RunResult {
             exit_code: 0,
             pipe_output: Some(PipeOutput::Process(child)),
+            shell_exit: false,
         }
     }
 
@@ -62,6 +73,7 @@ impl RunResult {
         RunResult {
             exit_code: code,
             pipe_output: Some(PipeOutput::Text(output)),
+            shell_exit: false,
         }
     }
 }
@@ -145,6 +157,9 @@ pub fn dispatch(mut shell_ctx: ShellContext, parsed_cmd: ParsedShell) -> RunResu
 
         if let Some(cmd) = commands.get(command) {
             let mut result = cmd.run(exe_ctx);
+            if result.shell_exit {
+                return result;
+            }
 
             match result.pipe_output.take() {
                 Some(PipeOutput::Process(mut child)) => {

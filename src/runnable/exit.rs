@@ -8,6 +8,6 @@ impl Runnable for Exit {
     }
 
     fn run(&self, _ctx: ExecContext) -> RunResult {
-        std::process::exit(0);
+        RunResult::exit_shell()
     }
 }
