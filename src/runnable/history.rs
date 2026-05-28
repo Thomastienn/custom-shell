@@ -46,22 +46,7 @@ impl Runnable for History {
                     return io::write(content.as_str(), &write_type);
                 }
                 "-a" => {
-                    let content = history_entries
-                        .iter()
-                        .skip(history.last_appended)
-                        .enumerate()
-                        .map(|(i, cmd)| {
-                            format!(
-                                "{}{}",
-                                cmd,
-                                if i == history_entries.len() - 1 {
-                                    ""
-                                } else {
-                                    "\n"
-                                }
-                            )
-                        })
-                        .collect::<String>();
+                    let content = history_entries[history.last_appended..].join("\n");
                     let append_type = Output::AppendFile(next_arg.clone());
 
                     history.last_appended = history_entries.len();
