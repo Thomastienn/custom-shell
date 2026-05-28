@@ -1,6 +1,6 @@
 use std::fs::{self, OpenOptions};
 use std::io;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::process::{Child, ChildStdout, Stdio};
 
@@ -41,11 +41,7 @@ fn create_parent_folder(path: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn input_to_stdio(
-    input: &Input,
-    pipe_input: Option<PipeInput>,
-    stdin_text: &mut Option<String>,
-) -> io::Result<Stdio> {
+pub fn input_to_stdio(input: &Input, pipe_input: &mut Option<PipeInput>) -> io::Result<Stdio> {
     match input {
         Input::Stdin => Ok(Stdio::inherit()),
         Input::File(path) => {
@@ -54,11 +50,14 @@ pub fn input_to_stdio(
             Ok(Stdio::from(file))
         }
         Input::Pipe => match pipe_input {
-            Some(PipeInput::FromProcess(stdout)) => Ok(Stdio::from(stdout)),
-            Some(PipeInput::FromBuiltin(text)) => {
-                *stdin_text = Some(text);
-                Ok(Stdio::piped())
+            Some(PipeInput::FromProcess(_)) => {
+                let Some(PipeInput::FromProcess(stdout)) = pipe_input.take() else {
+                    unreachable!();
+                };
+
+                Ok(Stdio::from(stdout))
             }
+            Some(PipeInput::FromBuiltin(_)) => Ok(Stdio::piped()),
             None => Err(io::Error::new(
                 io::ErrorKind::BrokenPipe,
                 "missing pipe input",
@@ -67,7 +66,51 @@ pub fn input_to_stdio(
     }
 }
 
-// TODO: should have read_from_input function and read()
+pub fn _read(input: &Input, pipe_input: Option<PipeInput>) -> io::Result<String> {
+    match input {
+        Input::Stdin => {
+            let mut text = String::new();
+            io::stdin().read_to_string(&mut text)?;
+            Ok(text)
+        }
+        Input::File(path) => fs::read_to_string(path),
+        Input::Pipe => match pipe_input {
+            Some(PipeInput::FromProcess(mut stdout)) => {
+                let mut text = String::new();
+                stdout.read_to_string(&mut text)?;
+                Ok(text)
+            }
+            Some(PipeInput::FromBuiltin(text)) => Ok(text),
+            None => Err(io::Error::new(
+                io::ErrorKind::BrokenPipe,
+                "missing pipe input",
+            )),
+        },
+    }
+}
+
+pub fn feed_pipe_input(
+    input: &Input,
+    child: &mut Child,
+    pipe_input: Option<PipeInput>,
+) -> io::Result<()> {
+    if !matches!(input, Input::Pipe) {
+        return Ok(());
+    }
+
+    let Some(PipeInput::FromBuiltin(text)) = pipe_input else {
+        return Ok(());
+    };
+
+    let Some(mut stdin) = child.stdin.take() else {
+        return Err(io::Error::new(
+            io::ErrorKind::BrokenPipe,
+            "child stdin unavailable",
+        ));
+    };
+
+    stdin.write_all(text.as_bytes())
+}
 
 pub fn output_to_stdio(output: &Output) -> io::Result<Stdio> {
     match output {

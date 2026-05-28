@@ -1,6 +1,5 @@
 use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::utils::io::{self, Output};
-use std::io::Write;
 use std::process::Command;
 
 pub struct ExternalCommand {
@@ -28,8 +27,8 @@ impl Runnable for ExternalCommand {
         let p_stderr = &ctx.own_parsed_command.stderr;
         let p_stdin = &ctx.own_parsed_command.stdin;
 
-        let mut stdin_text = None;
-        let stdin = match io::input_to_stdio(p_stdin, ctx.pipe_input, &mut stdin_text) {
+        let mut pipe_input = ctx.pipe_input;
+        let stdin = match io::input_to_stdio(p_stdin, &mut pipe_input) {
             Ok(stdin) => stdin,
             Err(e) => {
                 eprintln!("Error setting up stdin: {}", e);
@@ -63,15 +62,9 @@ impl Runnable for ExternalCommand {
             Err(_) => return RunResult::exit(1),
         };
 
-        if let Some(text) = stdin_text {
-            let Some(mut child_stdin) = child.stdin.take() else {
-                eprintln!("Error writing to stdin: child stdin unavailable");
-                return RunResult::exit(1);
-            };
-            if let Err(e) = child_stdin.write_all(text.as_bytes()) {
-                eprintln!("Error writing to stdin: {}", e);
-                return RunResult::exit(1);
-            }
+        if let Err(e) = io::feed_pipe_input(p_stdin, &mut child, pipe_input) {
+            eprintln!("Error writing to stdin: {}", e);
+            return RunResult::exit(1);
         }
 
         if matches!(p_stdout, Output::Pipe) {
