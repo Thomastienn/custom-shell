@@ -7,17 +7,17 @@ pub struct Declare;
 pub type ShellVariable = HashMap<String, String>;
 
 impl Declare {
-    pub fn parse_declare(content: &str) -> Option<(String, String)> {
+    pub fn parse_declare(content: &str) -> Result<(String, String), String> {
         let parts: Vec<&str> = content.splitn(2, '=').collect();
         if parts.len() == 2 {
             let name = parts[0].trim().to_string();
-            if name.chars().next().unwrap().is_ascii_digit() {
-                return None;
-            }
             let value = parts[1].trim().to_string();
-            Some((name, value))
+            if name.chars().next().unwrap().is_ascii_digit() {
+                return Err(format!("declare: `{}={}`: not a valid identifier", name, value));
+            }
+            Ok((name, value))
         } else {
-            None
+            Err(format!("declare: `{}`: not a valid assignment", content))
         }
     }
 }
@@ -61,10 +61,12 @@ impl Runnable for Declare {
         }
 
         match Self::parse_declare(&args[0]) {
-            Some((name, value)) => {
+            Ok((name, value)) => {
                 shell_vars.insert(name, value);
             }
-            None => {}
+            Err(e) => {
+                return io::error(e.as_str(), &ctx.own_parsed_command.stderr, 1);
+            }
         }
 
         RunResult::exit(0)
