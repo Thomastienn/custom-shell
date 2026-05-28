@@ -7,7 +7,8 @@ use crossterm::terminal;
 
 use crate::parser::{self, ParsedShell};
 use crate::runnable::complete::Complete;
-use crate::runnable::{CommandMap, CompletionPath, HistoryCtx};
+use crate::runnable::history::HistoryCtx;
+use crate::runnable::{CommandMap, CompletionPath};
 use crate::structures::string;
 use crate::structures::trie::{Trie};
 use crate::tokenizer::Tokenizer;

@@ -9,7 +9,7 @@ pub mod jobs;
 pub mod history;
 
 use crate::parser::{ParsedCommand, ParsedShell};
-use crate::runnable::history::History;
+use crate::runnable::history::{History, HistoryCtx};
 use crate::runnable::jobs::{JobInfo, Jobs};
 use crate::structures::dll::DoublyLinkedList;
 use crate::utils::io::{self, PipeOutput, PipeInput};
@@ -17,29 +17,12 @@ use crate::structures::trie::{Trie};
 use crate::runnable::external::ExternalCommand;
 use crate::utils::path::PathUtils;
 use std::collections::HashMap;
-use std::env;
 use std::path::PathBuf;
 use std::process::Child;
 
 pub type CommandMap = HashMap<String, Box<dyn Runnable>>;
 pub type CompletionPath = HashMap<String, PathBuf>;
 pub type JobList = DoublyLinkedList<JobInfo>;
-pub struct HistoryCtx {
-    pub entries: Vec<String>,
-    pub last_appended: usize
-}
-impl HistoryCtx {
-    pub fn new() -> Self {
-        let mut entries = Vec::new();
-        if let Ok(history_path) = env::var("HISTFILE") {
-            History::read_and_load(&history_path, &mut entries);
-        }
-        HistoryCtx {
-            entries: entries,
-            last_appended: 0,
-        }
-    }
-}
 pub struct ShellContext<'a> {
     pub commands_map: &'a CommandMap,
     pub completions_path: &'a mut CompletionPath,

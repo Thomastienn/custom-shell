@@ -1,4 +1,4 @@
-use crate::{input::InputCtx, runnable::{HistoryCtx, cd::Cd, jobs::Jobs}, structures::dll::DoublyLinkedList,};
+use crate::{input::InputCtx, runnable::{cd::Cd, history::HistoryCtx, jobs::Jobs}, structures::dll::DoublyLinkedList,};
 use input::InputShell;
 use runnable::ShellContext;
 use std::collections::HashMap;

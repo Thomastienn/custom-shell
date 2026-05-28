@@ -1,7 +1,33 @@
-use std::fs;
+use std::{env, fs};
 
 use crate::runnable::{ExecContext, RunResult, Runnable};
 use crate::utils::io::{self, Output};
+
+pub struct HistoryCtx {
+    pub entries: Vec<String>,
+    pub last_appended: usize
+}
+impl HistoryCtx {
+    pub fn new() -> Self {
+        let mut entries = Vec::new();
+        if let Ok(history_path) = env::var("HISTFILE") {
+            History::read_and_load(&history_path, &mut entries);
+        }
+        HistoryCtx {
+            entries: entries,
+            last_appended: 0,
+        }
+    }
+}
+
+impl Drop for HistoryCtx {
+    fn drop(&mut self) {
+        if let Ok(history_path) = env::var("HISTFILE") {
+            History::write_hist(&history_path, &self.entries);
+        }
+    }
+}
+
 
 pub struct History;
 
@@ -18,6 +44,12 @@ impl History {
             .lines()
             .for_each(|line| entries.push(line.to_string()));
         return RunResult::exit(0);
+    }
+
+    pub fn write_hist(path: &str, entries: &Vec<String>) -> RunResult {
+        let content = entries.join("\n");
+        let write_type = Output::File(path.to_string());
+        return io::write(content.as_str(), &write_type);
     }
 }
 
@@ -47,9 +79,7 @@ impl Runnable for History {
                 }
 
                 "-w" => {
-                    let content = history_entries.join("\n");
-                    let write_type = Output::File(next_arg.clone());
-                    return io::write(content.as_str(), &write_type);
+                    return Self::write_hist(next_arg, history_entries);
                 }
                 "-a" => {
                     let content = history_entries[history.last_appended..].join("\n");
