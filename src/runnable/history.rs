@@ -49,7 +49,18 @@ impl Runnable for History {
                     let content = history_entries
                         .iter()
                         .skip(history.last_appended)
-                        .map(|cmd| format!("{}\n", cmd))
+                        .enumerate()
+                        .map(|(i, cmd)| {
+                            format!(
+                                "{}{}",
+                                cmd,
+                                if i == history_entries.len() - 1 {
+                                    ""
+                                } else {
+                                    "\n"
+                                }
+                            )
+                        })
                         .collect::<String>();
                     let append_type = Output::AppendFile(next_arg.clone());
 
