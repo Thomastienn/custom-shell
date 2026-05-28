@@ -5,6 +5,22 @@ use crate::utils::io::{self, Output};
 
 pub struct History;
 
+impl History {
+    pub fn read_and_load(path: &str, entries: &mut Vec<String>) -> RunResult {
+        let content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(e) => {
+                eprintln!("Error reading file {}: {}", path, e);
+                return RunResult::exit(1);
+            }
+        };
+        content
+            .lines()
+            .for_each(|line| entries.push(line.to_string()));
+        return RunResult::exit(0);
+    }
+}
+
 impl Runnable for History {
     fn name(&self) -> String {
         "history".to_string()
@@ -27,17 +43,7 @@ impl Runnable for History {
             let next_arg = &args[i + 1];
             match arg.as_str() {
                 "-r" => {
-                    let content = match fs::read_to_string(next_arg) {
-                        Ok(content) => content,
-                        Err(e) => {
-                            eprintln!("Error reading file {}: {}", next_arg, e);
-                            return RunResult::exit(1);
-                        }
-                    };
-                    content
-                        .lines()
-                        .for_each(|line| history_entries.push(line.to_string()));
-                    return RunResult::exit(0);
+                    return Self::read_and_load(next_arg, history_entries);
                 }
 
                 "-w" => {

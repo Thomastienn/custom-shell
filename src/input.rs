@@ -7,7 +7,7 @@ use crossterm::terminal;
 
 use crate::parser::{self, ParsedShell};
 use crate::runnable::complete::Complete;
-use crate::runnable::{CommandMap, CompletionPath, History};
+use crate::runnable::{CommandMap, CompletionPath, HistoryCtx};
 use crate::structures::string;
 use crate::structures::trie::{Trie};
 use crate::tokenizer::Tokenizer;
@@ -32,7 +32,7 @@ pub struct InputCtx<'a> {
     pub completions_path: &'a CompletionPath,
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
-    pub history: &'a mut History,
+    pub history: &'a mut HistoryCtx,
 }
 
 type PrevArg = String;
@@ -252,7 +252,7 @@ impl InputShell {
         }
     }
 
-    fn submit(stdout: &mut io::Stdout, buffer: &str, history: &mut History) -> Result<ParsedShell, io::Error> {
+    fn submit(stdout: &mut io::Stdout, buffer: &str, history: &mut HistoryCtx) -> Result<ParsedShell, io::Error> {
         print!("\r\n");
         stdout.flush()?;
         history.entries.push(buffer.to_string());
