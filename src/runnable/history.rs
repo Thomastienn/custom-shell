@@ -32,6 +32,15 @@ impl Runnable for History {
                     content.lines().for_each(|line| ctx.shell_ctx.history.push(line.to_string()));
                     return RunResult::exit(0);
                 }
+
+                "-w" => {
+                    let content = ctx.shell_ctx.history.join("\n");
+                    if let Err(e) = fs::write(next_arg, content) {
+                        eprintln!("Error: Failed to write to file {}: {}", next_arg, e);
+                        return RunResult::exit(1);
+                    }
+                    return RunResult::exit(0);
+                }
                 _ => {
                     eprintln!("Error: Unknown option {}", arg);
                     return RunResult::exit(1);
