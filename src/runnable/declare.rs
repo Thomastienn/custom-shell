@@ -13,11 +13,11 @@ impl Declare {
             let name = parts[0].trim().to_string();
             let value = parts[1].trim().to_string();
             if name.chars().next().unwrap().is_ascii_digit() {
-                return Err(format!("declare: `{}={}`: not a valid identifier", name, value));
+                return Err(format!("declare: `{}={}': not a valid identifier", name, value));
             }
             Ok((name, value))
         } else {
-            Err(format!("declare: `{}`: not a valid assignment", content))
+            Err(format!("declare: `{}': not a valid assignment", content))
         }
     }
 }
