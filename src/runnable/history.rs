@@ -1,7 +1,8 @@
 use std::fs;
 
 use crate::runnable::{ExecContext, RunResult, Runnable};
-use crate::utils::io;
+use crate::utils::io::{self, Input, Output};
+use std::io::Write;
 
 pub struct History;
 
@@ -25,9 +26,12 @@ impl Runnable for History {
             let next_arg = &args[i + 1];
             match arg.as_str() {
                 "-r" => {
-                    let Ok(content) = fs::read_to_string(next_arg) else {
-                        eprintln!("Error: Failed to read file {}", next_arg);
-                        return RunResult::exit(1);
+                    let content = match fs::read_to_string(next_arg) {
+                        Ok(content) => content,
+                        Err(e) => {
+                            eprintln!("Error reading file {}: {}", next_arg, e);
+                            return RunResult::exit(1);
+                        }
                     };
                     content.lines().for_each(|line| ctx.shell_ctx.history.push(line.to_string()));
                     return RunResult::exit(0);
@@ -35,11 +39,13 @@ impl Runnable for History {
 
                 "-w" => {
                     let content = ctx.shell_ctx.history.join("\n") + "\n";
-                    if let Err(e) = fs::write(next_arg, content) {
-                        eprintln!("Error: Failed to write to file {}: {}", next_arg, e);
-                        return RunResult::exit(1);
-                    }
-                    return RunResult::exit(0);
+                    let write_type = Output::File(next_arg.clone());
+                    return io::write(content.as_str(), &write_type);
+                }
+                "-a" => {
+                    let content = ctx.shell_ctx.history.join("\n") + "\n";
+                    let append_type = Output::AppendFile(next_arg.clone());
+                    return io::write(content.as_str(), &append_type);
                 }
                 _ => {
                     eprintln!("Error: Unknown option {}", arg);

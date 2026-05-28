@@ -66,7 +66,7 @@ pub fn input_to_stdio(input: &Input, pipe_input: &mut Option<PipeInput>) -> io::
     }
 }
 
-pub fn _read(input: &Input, pipe_input: Option<PipeInput>) -> io::Result<String> {
+pub fn read(input: &Input, pipe_input: Option<PipeInput>) -> io::Result<String> {
     match input {
         Input::Stdin => {
             let mut text = String::new();
