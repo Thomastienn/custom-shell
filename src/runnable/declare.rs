@@ -15,6 +15,11 @@ impl Declare {
             if name.chars().next().unwrap().is_ascii_digit() {
                 return Err(format!("declare: `{}={}': not a valid identifier", name, value));
             }
+            for c in name.chars() {
+                if !c.is_ascii_alphanumeric() && c != '_' {
+                    return Err(format!("declare: `{}={}': not a valid identifier", name, value));
+                }
+            }
             Ok((name, value))
         } else {
             Err(format!("declare: `{}': not a valid assignment", content))
