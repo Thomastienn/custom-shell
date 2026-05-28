@@ -41,7 +41,7 @@ impl Runnable for History {
                 }
 
                 "-w" => {
-                    let content = history_entries.join("\n") + "\n";
+                    let content = history_entries.join("\n");
                     let write_type = Output::File(next_arg.clone());
                     return io::write(content.as_str(), &write_type);
                 }
