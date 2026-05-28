@@ -34,7 +34,7 @@ impl Runnable for History {
                 }
 
                 "-w" => {
-                    let content = ctx.shell_ctx.history.join("\n");
+                    let content = ctx.shell_ctx.history.join("\n") + "\n";
                     if let Err(e) = fs::write(next_arg, content) {
                         eprintln!("Error: Failed to write to file {}: {}", next_arg, e);
                         return RunResult::exit(1);
