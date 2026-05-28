@@ -11,6 +11,9 @@ impl Declare {
         let parts: Vec<&str> = content.splitn(2, '=').collect();
         if parts.len() == 2 {
             let name = parts[0].trim().to_string();
+            if name.chars().next().unwrap().is_ascii_digit() {
+                return None;
+            }
             let value = parts[1].trim().to_string();
             Some((name, value))
         } else {
@@ -61,10 +64,7 @@ impl Runnable for Declare {
             Some((name, value)) => {
                 shell_vars.insert(name, value);
             }
-            None => {
-                eprintln!("declare: invalid argument '{}'", args[0]);
-                return RunResult::exit(1);
-            }
+            None => {}
         }
 
         RunResult::exit(0)
