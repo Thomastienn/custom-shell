@@ -43,7 +43,7 @@ impl Runnable for History {
                     return io::write(content.as_str(), &write_type);
                 }
                 "-a" => {
-                    let content = ctx.shell_ctx.history.join("\n") + "\n";
+                    let content = ctx.shell_ctx.history.join("\n");
                     let append_type = Output::AppendFile(next_arg.clone());
                     return io::write(content.as_str(), &append_type);
                 }
