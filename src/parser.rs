@@ -36,13 +36,16 @@ fn parse_word(word: &Word, ctx: &ParseCtx) -> Result<String, String> {
                     if let Some(value) = ctx.shell_vars.get(var) {
                         result.push_str(value);
                     } else {
-                        return Err(format!("undefined variable: ${}", var));
+                        result.push_str("");
                     }
                 } else {
                     result.push_str(&format!("${}", var));
                 }
             }
         }
+    }
+    if result.is_empty() && ctx.strict {
+        return Err("empty word".to_string());
     }
     Ok(result)
 }
@@ -73,7 +76,7 @@ pub fn parse(tokens: Vec<Token>, ctx: ParseCtx) -> Result<ParsedShell, String> {
                             args.push(p);
                         }
                     }
-                    Err(e) => return Err(e),
+                    Err(_) => {}
                 }
                 i += 1;
             }
