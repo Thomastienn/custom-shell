@@ -34,6 +34,7 @@ fn main() {
             cmd_pref: &cmd_trie,
             filesystem_pref: &filesystem_trie,
             history: &mut history,
+            shell_vars: &shell_vars,
         };
         let removed_jobs = Jobs::reap_jobs(&mut job_list);
         for job_str in removed_jobs {

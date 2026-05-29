@@ -7,6 +7,9 @@ pub struct Declare;
 pub type ShellVariable = HashMap<String, String>;
 
 impl Declare {
+    pub fn is_valid_shell_char(c: char) -> bool {
+        c.is_ascii_alphanumeric() || c == '_'
+    }
     pub fn parse_declare(content: &str) -> Result<(String, String), String> {
         let parts: Vec<&str> = content.splitn(2, '=').collect();
         if parts.len() == 2 {
@@ -16,7 +19,7 @@ impl Declare {
                 return Err(format!("declare: `{}={}': not a valid identifier", name, value));
             }
             for c in name.chars() {
-                if !c.is_ascii_alphanumeric() && c != '_' {
+                if !Self::is_valid_shell_char(c) {
                     return Err(format!("declare: `{}={}': not a valid identifier", name, value));
                 }
             }

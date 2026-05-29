@@ -1,6 +1,7 @@
+use crate::runnable::declare::ShellVariable;
 use crate::utils::io::Input;
 use crate::{tokenizer::Token, utils::io};
-use crate::tokenizer::RedirectOp;
+use crate::tokenizer::{RedirectOp, Word, WordPart};
 use io::Output;
 
 #[derive(Debug)]
@@ -20,7 +21,33 @@ pub struct ParsedShell {
     pub background: bool,
 }
 
-pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
+pub struct ParseCtx<'a> {
+    pub strict: bool,
+    pub shell_vars: &'a ShellVariable
+}
+
+fn parse_word(word: &Word, ctx: &ParseCtx) -> Result<String, String> {
+    let mut result = String::new();
+    for part in &word.parts {
+        match part {
+            WordPart::Literal(lit) => result.push_str(lit),
+            WordPart::Variable(var) => {
+                if ctx.strict {
+                    if let Some(value) = ctx.shell_vars.get(var) {
+                        result.push_str(value);
+                    } else {
+                        return Err(format!("undefined variable: ${}", var));
+                    }
+                } else {
+                    result.push_str(&format!("${}", var));
+                }
+            }
+        }
+    }
+    Ok(result)
+}
+
+pub fn parse(tokens: Vec<Token>, ctx: ParseCtx) -> Result<ParsedShell, String> {
     let mut command: Option<String> = None;
     let mut args = Vec::new();
 
@@ -36,13 +63,18 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
 
     while i < tokens.len() {
         match &tokens[i] {
-            Token::Word(s) => {
-                if command.is_none() {
-                    command = Some(s.clone());
-                } else {
-                    args.push(s.clone());
+            Token::Str(s) => {
+                let parsed = parse_word(s, &ctx);
+                match parsed {
+                    Ok(p) => {
+                        if command.is_none() {
+                            command = Some(p);
+                        } else {
+                            args.push(p);
+                        }
+                    }
+                    Err(e) => return Err(e),
                 }
-
                 i += 1;
             }
 
@@ -53,7 +85,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
 
                 let final_command = match command.take() {
                     Some(c) => c,
-                    None if strict => return Err("empty command".to_string()),
+                    None if ctx.strict => return Err("empty command".to_string()),
                     _ => "".to_string(),
                 };
                 let parsed = ParsedCommand {
@@ -89,13 +121,13 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                         RedirectOp::Append => ">>",
                     }
                 );
-                let file = expect_file(&tokens, i, &op_str, strict)?;
+                let file = expect_file(&tokens, i, &op_str, &ctx)?;
 
                 match op {
                     RedirectOp::Read => {
                         match fd.unwrap_or(0) {
                             0 => stdin = Input::File(file),
-                            n if strict => return Err(format!("unsupported file descriptor: {}", n)),
+                            n if ctx.strict => return Err(format!("unsupported file descriptor: {}", n)),
                             _ => {}
                         }
                     }
@@ -104,7 +136,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                         match fd.unwrap_or(1) {
                             1 => stdout = Output::File(file),
                             2 => stderr = Output::File(file),
-                            n if strict => return Err(format!("unsupported file descriptor: {}", n)),
+                            n if ctx.strict => return Err(format!("unsupported file descriptor: {}", n)),
                             _ => {}
                         }
                     }
@@ -113,7 +145,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                         match fd.unwrap_or(1) {
                             1 => stdout = Output::AppendFile(file),
                             2 => stderr = Output::AppendFile(file),
-                            n if strict => return Err(format!("unsupported file descriptor: {}", n)),
+                            n if ctx.strict => return Err(format!("unsupported file descriptor: {}", n)),
                             _ => {}
                         }
                     }
@@ -137,7 +169,7 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
                 stderr,
             });
         }
-        None if strict => return Err("empty command".to_string()),
+        None if ctx.strict => return Err("empty command".to_string()),
         _ => {}
     }
 
@@ -150,11 +182,13 @@ pub fn parse(tokens: Vec<Token>, strict: bool) -> Result<ParsedShell, String> {
 
 }
 
-fn expect_file(tokens: &[Token], redirect_pos: usize, op: &str, strict: bool) -> Result<String, String> {
+fn expect_file(tokens: &[Token], redirect_pos: usize, op: &str, ctx: &ParseCtx) -> Result<String, String> {
     match tokens.get(redirect_pos + 1) {
-        Some(Token::Word(file)) => Ok(file.clone()),
-        Some(_) if strict => Err(format!("expected file after '{}'", op)),
-        None if strict => Err(format!("expected file after '{}'", op)),
+        Some(Token::Str(wfile)) => {
+            return parse_word(wfile, ctx);
+        }
+        Some(_) if ctx.strict => Err(format!("expected file after '{}'", op)),
+        None if ctx.strict => Err(format!("expected file after '{}'", op)),
         _ => Ok(format!("unknown_redirect_{}", redirect_pos))
     }
 }

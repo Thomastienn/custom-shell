@@ -6,8 +6,25 @@ pub enum RedirectOp {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WordPart {
+    Literal(String),
+    Variable(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Word {
+    pub parts: Vec<WordPart>
+}
+
+impl Word {
+    pub fn new() -> Self {
+        Self { parts: Vec::new() }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
-    Word(String),
+    Str(Word),
     Redirect {
         fd: Option<u8>,
         op: RedirectOp,
@@ -105,13 +122,14 @@ impl Tokenizer {
             return Some(redirect);
         }
 
-        let mut word = String::new();
         let mut quote: Option<char> = None;
         let mut escape = false;
+        let mut word = Word::new();
+        let mut word_part = String::new();
 
         while let Some(c) = self.peek() {
             if escape {
-                word.push(c);
+                word_part.push(c);
                 self.advance_char(c);
                 escape = false;
                 continue;
@@ -152,6 +170,21 @@ impl Tokenizer {
                     return Some(Token::Pipe);
                 }
 
+                if c == '$' {
+                    self.advance_char(c);
+                    let mut var_name = String::new();
+                    while let Some(c) = self.peek() {
+                        if c.is_alphanumeric() || c == '_' {
+                            var_name.push(c);
+                            self.advance_char(c);
+                        } else {
+                            break;
+                        }
+                    }
+                    word.parts.push(WordPart::Variable(var_name));
+                    continue;
+                }
+
                 // If it's redirect
                 let start = self.position;
                 let is_redirect = self.try_redirect().is_some();
@@ -161,11 +194,13 @@ impl Tokenizer {
                 }
             }
 
-            word.push(c);
+            word_part.push(c);
             self.advance_char(c);
         }
 
-        Some(Token::Word(word))
+        word.parts.push(WordPart::Literal(word_part));
+        word.parts.reverse();
+        Some(Token::Str(word))
     }
 
     pub fn tokenize(&mut self) -> Vec<Token> {

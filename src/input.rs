@@ -5,8 +5,9 @@ use std::path::PathBuf;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
-use crate::parser::{self, ParsedShell};
+use crate::parser::{self, ParseCtx, ParsedShell};
 use crate::runnable::complete::{Complete, CompletionPath};
+use crate::runnable::declare::ShellVariable;
 use crate::runnable::history::HistoryCtx;
 use crate::runnable::{CommandMap};
 use crate::structures::string;
@@ -34,6 +35,7 @@ pub struct InputCtx<'a> {
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
     pub history: &'a mut HistoryCtx,
+    pub shell_vars: &'a ShellVariable
 }
 
 type PrevArg = String;
@@ -50,14 +52,19 @@ pub enum SuggestionType {
 pub struct InputShell;
 
 impl InputShell {
-    fn parse_buffer(buffer: &str, strict: bool) -> Result<ParsedShell, io::Error> {
+    fn parse_buffer(buffer: &str, strict: bool, input_ctx: &InputCtx) -> Result<ParsedShell, io::Error> {
         let mut tokenizer = Tokenizer::new(buffer.to_string());
         let tokens = tokenizer.tokenize();
 
-        parser::parse(tokens, strict).map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))
+        let parse_ctx = ParseCtx {
+            strict,
+            shell_vars: input_ctx.shell_vars,
+        };
+
+        parser::parse(tokens, parse_ctx).map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))
     }
 
-    pub fn read_line(prompt: &str, ctx: InputCtx) -> Result<ParsedShell, io::Error> {
+    pub fn read_line(prompt: &str, mut ctx: InputCtx) -> Result<ParsedShell, io::Error> {
         let _raw_mode = RawModeGuard::new()?;
 
         let mut stdout = io::stdout();
@@ -88,7 +95,7 @@ impl InputShell {
             }
             key_presses.push_back(key.code);
 
-            let parsed_cmd = Self::parse_buffer(&buffer, false).unwrap();
+            let parsed_cmd = Self::parse_buffer(&buffer, false, &ctx).unwrap();
 
             match key.code {
                 KeyCode::Char(c) => {
@@ -100,7 +107,7 @@ impl InputShell {
                                 return Err(io::Error::new(ErrorKind::Interrupted, "Interrupted"));
                             }
                             'j' => {
-                                return Self::submit(&mut stdout, &buffer, ctx.history);
+                                return Self::submit(&mut stdout, &buffer, &mut ctx);
                             }
                             'z' => {
                                 dbg!(&parsed_cmd);
@@ -245,7 +252,7 @@ impl InputShell {
                 KeyCode::Enter => {
                     print!("\r\n");
                     stdout.flush()?;
-                    return Self::submit(&mut stdout, &buffer, ctx.history);
+                    return Self::submit(&mut stdout, &buffer, &mut ctx);
                 }
 
                 _ => {}
@@ -253,10 +260,10 @@ impl InputShell {
         }
     }
 
-    fn submit(stdout: &mut io::Stdout, buffer: &str, history: &mut HistoryCtx) -> Result<ParsedShell, io::Error> {
+    fn submit(stdout: &mut io::Stdout, buffer: &str, input_ctx: &mut InputCtx) -> Result<ParsedShell, io::Error> {
         print!("\r\n");
         stdout.flush()?;
-        history.entries.push(buffer.to_string());
-        return Self::parse_buffer(buffer, true);
+        input_ctx.history.entries.push(buffer.to_string());
+        return Self::parse_buffer(buffer, true, input_ctx);
     }
 }
