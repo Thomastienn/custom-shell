@@ -171,14 +171,30 @@ impl Tokenizer {
                 }
 
                 if c == '$' {
+                    word.parts.push(WordPart::Literal(word_part));
+                    word_part = String::new();
                     self.advance_char(c);
                     let mut var_name = String::new();
-                    while let Some(c) = self.peek() {
-                        if c.is_alphanumeric() || c == '_' {
-                            var_name.push(c);
-                            self.advance_char(c);
+                    if let Some(next) = self.peek() {
+                        if next == '{' {
+                            self.advance_char(next);
+                            while let Some(c) = self.peek() {
+                                if c == '}' {
+                                    self.advance_char(c);
+                                    break;
+                                }
+                                var_name.push(c);
+                                self.advance_char(c);
+                            }
                         } else {
-                            break;
+                            while let Some(c) = self.peek() {
+                                if c.is_alphanumeric() || c == '_' {
+                                    var_name.push(c);
+                                    self.advance_char(c);
+                                } else {
+                                    break;
+                                }
+                            }
                         }
                     }
                     word.parts.push(WordPart::Variable(var_name));
@@ -199,7 +215,6 @@ impl Tokenizer {
         }
 
         word.parts.push(WordPart::Literal(word_part));
-        word.parts.reverse();
         Some(Token::Str(word))
     }
 
