@@ -33,6 +33,12 @@ pub enum Token {
     Pipe,
 }
 
+pub struct LexedToken {
+    pub token: Token,
+    pub start: usize,
+    pub end: usize,
+}
+
 pub struct Tokenizer {
     input: String,
     position: usize,
@@ -111,7 +117,8 @@ impl Tokenizer {
         }
     }
 
-    pub fn next_token(&mut self) -> Option<Token> {
+    pub fn next_token(&mut self) -> Option<LexedToken> {
+        let start = self.position;
         self.skip_whitespace();
 
         if self.position >= self.input.len() {
@@ -119,7 +126,13 @@ impl Tokenizer {
         }
 
         if let Some(redirect) = self.try_redirect() {
-            return Some(redirect);
+            return Some(
+                LexedToken {
+                    token: redirect,
+                    start,
+                    end: self.position,
+                }
+            );
         }
 
         let mut quote: Option<char> = None;
@@ -161,13 +174,25 @@ impl Tokenizer {
                 // If it's background operator
                 if c == '&' {
                     self.advance_char(c);
-                    return Some(Token::Background);
+                    return Some(
+                        LexedToken {
+                            token: Token::Background,
+                            start,
+                            end: self.position,
+                        }
+                    );
                 }
 
                 // Pipe operator
                 if c == '|' {
                     self.advance_char(c);
-                    return Some(Token::Pipe);
+                    return Some(
+                        LexedToken {
+                            token: Token::Pipe,
+                            start,
+                            end: self.position,
+                        }
+                    );
                 }
 
                 if c == '$' {
@@ -215,10 +240,14 @@ impl Tokenizer {
         }
 
         word.parts.push(WordPart::Literal(word_part));
-        Some(Token::Str(word))
+        Some(LexedToken {
+            token: Token::Str(word),
+            start,
+            end: self.position,
+        })
     }
 
-    pub fn tokenize(&mut self) -> Vec<Token> {
+    pub fn tokenize(&mut self) -> Vec<LexedToken> {
         let mut tokens = Vec::new();
 
         while let Some(token) = self.next_token() {

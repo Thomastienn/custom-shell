@@ -50,7 +50,7 @@ fn parse_word(word: &Word, ctx: &ParseCtx) -> Result<String, String> {
     Ok(result)
 }
 
-pub fn parse(tokens: Vec<Token>, ctx: ParseCtx) -> Result<ParsedShell, String> {
+pub fn parse(tokens: Vec<&Token>, ctx: ParseCtx) -> Result<ParsedShell, String> {
     let mut command: Option<String> = None;
     let mut args = Vec::new();
 
@@ -185,7 +185,7 @@ pub fn parse(tokens: Vec<Token>, ctx: ParseCtx) -> Result<ParsedShell, String> {
 
 }
 
-fn expect_file(tokens: &[Token], redirect_pos: usize, op: &str, ctx: &ParseCtx) -> Result<String, String> {
+fn expect_file(tokens: &[&Token], redirect_pos: usize, op: &str, ctx: &ParseCtx) -> Result<String, String> {
     match tokens.get(redirect_pos + 1) {
         Some(Token::Str(wfile)) => {
             return parse_word(wfile, ctx);

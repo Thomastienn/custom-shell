@@ -6,13 +6,14 @@ use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::terminal;
 
 use crate::parser::{self, ParseCtx, ParsedShell};
+use crate::runnable::CommandMap;
 use crate::runnable::complete::{Complete, CompletionPath};
 use crate::runnable::declare::ShellVariable;
 use crate::runnable::history::HistoryCtx;
-use crate::runnable::{CommandMap};
 use crate::structures::string;
-use crate::structures::trie::{Trie};
-use crate::tokenizer::Tokenizer;
+use crate::structures::trie::Trie;
+use crate::tokenizer::{LexedToken, Tokenizer};
+use crate::utils::color;
 
 struct RawModeGuard;
 
@@ -35,7 +36,7 @@ pub struct InputCtx<'a> {
     pub cmd_pref: &'a Trie,
     pub filesystem_pref: &'a Trie,
     pub history: &'a mut HistoryCtx,
-    pub shell_vars: &'a ShellVariable
+    pub shell_vars: &'a ShellVariable,
 }
 
 type PrevArg = String;
@@ -52,16 +53,45 @@ pub enum SuggestionType {
 pub struct InputShell;
 
 impl InputShell {
-    fn parse_buffer(buffer: &str, strict: bool, input_ctx: &InputCtx) -> Result<ParsedShell, io::Error> {
+    fn tokenize_buffer(buffer: &str) -> Vec<LexedToken> {
         let mut tokenizer = Tokenizer::new(buffer.to_string());
-        let tokens = tokenizer.tokenize();
+        tokenizer.tokenize()
+    }
 
+    fn parse_buffer(
+        strict: bool,
+        input_ctx: &InputCtx,
+        lexed_tokens: &Vec<LexedToken>,
+    ) -> Result<ParsedShell, io::Error> {
         let parse_ctx = ParseCtx {
             strict,
             shell_vars: input_ctx.shell_vars,
         };
 
+        let tokens = lexed_tokens.iter().map(|t| &t.token).collect();
+
         parser::parse(tokens, parse_ctx).map_err(|e| io::Error::new(ErrorKind::InvalidInput, e))
+    }
+
+    fn render(
+        buffer: &str,
+        prompt: &str,
+        tokens: &Vec<LexedToken>,
+        stdout: &mut io::Stdout,
+    ) -> io::Result<()> {
+        let mut pos = 0;
+        print!("\r{prompt}\x1b[K");
+        for lex_tok in tokens {
+            print!("{}", &buffer[pos..lex_tok.start]);
+            
+            let raw = &buffer[lex_tok.start..lex_tok.end];
+            print!("{}", color::color_token(raw, &lex_tok));
+
+            pos = lex_tok.end;
+        }
+        print!("{}", &buffer[pos..]);
+
+        stdout.flush()
     }
 
     pub fn read_line(prompt: &str, mut ctx: InputCtx) -> Result<ParsedShell, io::Error> {
@@ -70,15 +100,15 @@ impl InputShell {
         let mut stdout = io::stdout();
         let mut buffer = String::new();
 
-        print!("{prompt}");
-        stdout.flush()?;
-
         let mut key_presses: VecDeque<KeyCode> = VecDeque::new();
         const MAX_HISTORY_KEYPRESSES: usize = 3;
 
         let mut tab_cnt = 0;
         let mut current_history = ctx.history.entries.len(); // 1-indexed since its usize
 
+        print!("{prompt}");
+        stdout.flush()?;
+        
         loop {
             let Event::Key(key) = event::read()? else {
                 continue;
@@ -95,7 +125,9 @@ impl InputShell {
             }
             key_presses.push_back(key.code);
 
-            let parsed_cmd = Self::parse_buffer(&buffer, false, &ctx).unwrap();
+            let mut tokenizer = Tokenizer::new(buffer.to_string());
+            let lexed_tokens = tokenizer.tokenize();
+            let parsed_cmd = Self::parse_buffer(false, &ctx, &lexed_tokens).unwrap();
 
             match key.code {
                 KeyCode::Char(c) => {
@@ -116,16 +148,24 @@ impl InputShell {
                         }
                     }
                     buffer.push(c);
-                    print!("{c}");
-                    stdout.flush()?;
+                    Self::render(
+                        &buffer,
+                        prompt,
+                        &Self::tokenize_buffer(&buffer),
+                        &mut stdout,
+                    )?;
                 }
 
                 KeyCode::Up => {
                     if current_history > 0 {
                         current_history -= 1;
                         buffer = ctx.history.entries[current_history].clone();
-                        print!("\r{prompt}{buffer}\x1b[K");
-                        stdout.flush()?;
+                        Self::render(
+                            &buffer,
+                            prompt,
+                            &Self::tokenize_buffer(&buffer),
+                            &mut stdout,
+                        )?;
                     }
                 }
 
@@ -133,15 +173,24 @@ impl InputShell {
                     if current_history + 1 < ctx.history.entries.len() {
                         current_history += 1;
                         buffer = ctx.history.entries[current_history].clone();
-                        print!("\r{prompt}{buffer}\x1b[K");
-                        stdout.flush()?;
+                        Self::render(
+                            &buffer,
+                            prompt,
+                            &Self::tokenize_buffer(&buffer),
+                            &mut stdout,
+                        )?;
                     }
                 }
 
                 KeyCode::Backspace => {
                     if buffer.pop().is_some() {
                         print!("\x08 \x08");
-                        stdout.flush()?;
+                        Self::render(
+                            &buffer,
+                            prompt,
+                            &Self::tokenize_buffer(&buffer),
+                            &mut stdout,
+                        )?;
                     }
                 }
 
@@ -163,8 +212,7 @@ impl InputShell {
                             cur_arg = cmd_args.last().unwrap().clone();
                         }
                         let path_str = path.to_str().unwrap().to_string();
-                        autocomplete =
-                            Some(SuggestionType::Complete(prev, cur_arg, path_str));
+                        autocomplete = Some(SuggestionType::Complete(prev, cur_arg, path_str));
                     }
 
                     let partial_word = cmd_args.len() >= 1;
@@ -190,7 +238,7 @@ impl InputShell {
                                 prev.as_str(),
                                 &PathBuf::from(path),
                                 buffer.as_str(),
-                                buffer.len()
+                                buffer.len(),
                             );
                         }
                         SuggestionType::Command => {
@@ -211,12 +259,15 @@ impl InputShell {
                     if suggestions.len() == 1 {
                         let suffix = &suggestions[0][partial.len()..];
                         buffer.push_str(suffix);
-                        print!("{suffix}");
                         if !suggestions[0].ends_with('/') {
-                            print!(" ");
                             buffer.push(' ');
                         }
-                        stdout.flush()?;
+                        Self::render(
+                            &buffer,
+                            prompt,
+                            &Self::tokenize_buffer(&buffer),
+                            &mut stdout,
+                        )?;
                         continue;
                     }
 
@@ -224,8 +275,12 @@ impl InputShell {
                     if lcp.len() > partial.len() {
                         let suffix = &lcp[partial.len()..];
                         buffer.push_str(suffix);
-                        print!("{suffix}");
-                        stdout.flush()?;
+                        Self::render(
+                            &buffer,
+                            prompt,
+                            &Self::tokenize_buffer(&buffer),
+                            &mut stdout,
+                        )?;
                         continue;
                     }
 
@@ -243,8 +298,13 @@ impl InputShell {
                         for suggestion in suggestions {
                             print!("{suggestion}  ");
                         }
-                        print!("\r\n{prompt}{buffer}");
-                        stdout.flush()?;
+                        print!("\r\n");
+                        Self::render(
+                            &buffer,
+                            prompt,
+                            &lexed_tokens,
+                            &mut stdout,
+                        )?;
                         continue;
                     }
                 }
@@ -260,10 +320,14 @@ impl InputShell {
         }
     }
 
-    fn submit(stdout: &mut io::Stdout, buffer: &str, input_ctx: &mut InputCtx) -> Result<ParsedShell, io::Error> {
+    fn submit(
+        stdout: &mut io::Stdout,
+        buffer: &str,
+        input_ctx: &mut InputCtx,
+    ) -> Result<ParsedShell, io::Error> {
         print!("\r\n");
         stdout.flush()?;
         input_ctx.history.entries.push(buffer.to_string());
-        return Self::parse_buffer(buffer, true, input_ctx);
+        return Self::parse_buffer(true, input_ctx, &Self::tokenize_buffer(buffer));
     }
 }
